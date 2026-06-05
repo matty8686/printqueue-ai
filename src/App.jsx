@@ -19,6 +19,11 @@ const INITIAL_PRINTERS = [
 
 const BLANK_PRINTER = { name: "", hasToolChanger: false, maxColors: 1, loadedColors: ["#FFFFFF"], colorNames: ["White PLA"], status: "idle", queue: [] };
 
+const MATERIALS = ["PLA", "PETG", "ABS", "TPU", "ASA", "Other"];
+const BRANDS = ["Bambu Lab", "Elegoo", "Overture", "Hatchbox", "eSUN", "Polymaker", "Prusament", "Sunlu", "Amazon Basics", "Other"];
+const LOW_STOCK_THRESHOLD = 250;
+const BLANK_FILAMENT = { id: null, color: "#FFFFFF", colorName: "White", material: "PLA", brand: "Bambu Lab", totalGrams: 1000 };
+
 const DEFAULT_COLORS = [
   { hex: "#1A202C", name: "Black" }, { hex: "#FFFFFF", name: "White" },
   { hex: "#E53E3E", name: "Red" },   { hex: "#F6AD55", name: "Orange" },
@@ -117,6 +122,149 @@ function Modal({ onClose, children, maxWidth = 480 }) {
     <div onClick={onClose} style={{ position:"fixed",inset:0,background:"#000000dd",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16 }}>
       <div onClick={e => e.stopPropagation()} className="card" style={{ width:"100%",maxWidth,padding:"24px 20px",animation:"slideIn 0.2s ease",maxHeight:"92vh",overflowY:"auto" }}>
         {children}
+
+        {/* ── INVENTORY TAB ── */}
+        {activeTab==="inventory" && (
+          <div>
+            {/* Summary bar */}
+            {inventory.length > 0 && (() => {
+              const lowStock = inventory.filter(f => f.totalGrams > 0 && f.totalGrams <= LOW_STOCK_THRESHOLD);
+              const outOfStock = inventory.filter(f => f.totalGrams === 0);
+              const totalByMaterial = {};
+              inventory.forEach(f => { totalByMaterial[f.material] = (totalByMaterial[f.material]||0) + f.totalGrams; });
+              return (
+                <div style={{display:"flex",gap:10,flexWrap:"wrap",marginBottom:16}}>
+                  {Object.entries(totalByMaterial).map(([mat,grams])=>(
+                    <div key={mat} className="card" style={{padding:"8px 14px",display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:12,color:"#aaa",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600}}>{mat}</span>
+                      <span style={{fontSize:12,color:"#2aff6e"}}>{(grams/1000).toFixed(1)}kg</span>
+                    </div>
+                  ))}
+                  {lowStock.length > 0 && (
+                    <div className="card" style={{padding:"8px 14px",background:"#1a1400",border:"1px solid #fbbf2444"}}>
+                      <span style={{fontSize:12,color:"#fbbf24"}}>⚠ {lowStock.length} low stock</span>
+                    </div>
+                  )}
+                  {outOfStock.length > 0 && (
+                    <div className="card" style={{padding:"8px 14px",background:"#1a0000",border:"1px solid #ff6e6e44"}}>
+                      <span style={{fontSize:12,color:"#ff6e6e"}}>✕ {outOfStock.length} out of stock</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
+            {/* Filter + Sort controls */}
+            <div style={{display:"flex",gap:8,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+              <input value={invFilter} onChange={e=>setInvFilter(e.target.value)} placeholder="Search brand, color, material…"
+                style={{flex:1,minWidth:160,background:"#111118",border:"1px solid #2a2a3a",borderRadius:6,padding:"6px 12px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,outline:"none"}} />
+              <div style={{display:"flex",gap:4}}>
+                {["brand","color","material"].map(s=>(
+                  <button key={s} onClick={()=>setInvSort(s)}
+                    style={{background:invSort===s?"#1a3d2a":"#111118",border:`1px solid ${invSort===s?"#2aff6e44":"#333"}`,borderRadius:4,color:invSort===s?"#2aff6e":"#555",cursor:"pointer",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,padding:"4px 10px"}}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {inventory.length === 0 ? (
+              <div style={{textAlign:"center",padding:"48px 0",color:"#444"}}>
+                <div style={{fontSize:36,marginBottom:10}}>🧵</div>
+                <div style={{fontSize:13}}>No filament in inventory. Click + Add to get started.</div>
+              </div>
+            ) : (() => {
+              const filtered = inventory.filter(f => {
+                if (!invFilter) return true;
+                const q = invFilter.toLowerCase();
+                return f.brand.toLowerCase().includes(q) || f.colorName.toLowerCase().includes(q) || f.material.toLowerCase().includes(q);
+              });
+              const sorted = [...filtered].sort((a,b) => {
+                if (invSort==="brand") return a.brand.localeCompare(b.brand) || a.colorName.localeCompare(b.colorName);
+                if (invSort==="color") return a.colorName.localeCompare(b.colorName);
+                if (invSort==="material") return a.material.localeCompare(b.material) || a.brand.localeCompare(b.brand);
+                return 0;
+              });
+              // Group by sort key
+              const groups = {};
+              sorted.forEach(f => {
+                const key = invSort==="brand" ? f.brand : invSort==="material" ? f.material : f.colorName[0]?.toUpperCase()||"?";
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(f);
+              });
+              return (
+                <div style={{display:"flex",flexDirection:"column",gap:16}}>
+                  {Object.entries(groups).map(([groupKey, items])=>(
+                    <div key={groupKey}>
+                      <div style={{fontSize:11,color:"#555",letterSpacing:"0.08em",marginBottom:8}}>{groupKey.toUpperCase()}</div>
+                      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:8}}>
+                        {items.map(f => {
+                          const isLow = f.totalGrams > 0 && f.totalGrams <= LOW_STOCK_THRESHOLD;
+                          const isOut = f.totalGrams === 0;
+                          const pct = Math.min(100, Math.round(f.totalGrams / 10)); // assume 1000g = full
+                          return (
+                            <div key={f.id} className="card" style={{padding:"12px 14px",border:`1px solid ${isOut?"#ff6e6e22":isLow?"#fbbf2422":"#1e1e2e"}`}}>
+                              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
+                                <div style={{width:28,height:28,borderRadius:6,background:f.color,border:"1px solid #ffffff22",flexShrink:0}} />
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.colorName}</div>
+                                  <div style={{fontSize:11,color:"#555"}}>{f.brand} · {f.material}</div>
+                                </div>
+                                <div style={{textAlign:"right",flexShrink:0}}>
+                                  <div style={{fontSize:14,fontWeight:600,color:isOut?"#ff6e6e":isLow?"#fbbf24":"#2aff6e"}}>{f.totalGrams}g</div>
+                                  {isLow && !isOut && <div style={{fontSize:9,color:"#fbbf24"}}>LOW STOCK</div>}
+                                  {isOut && <div style={{fontSize:9,color:"#ff6e6e"}}>OUT OF STOCK</div>}
+                                </div>
+                              </div>
+                              {/* Progress bar */}
+                              <div style={{height:3,background:"#1e1e2e",borderRadius:2,marginBottom:10,overflow:"hidden"}}>
+                                <div style={{height:"100%",width:`${pct}%`,background:isOut?"#ff6e6e":isLow?"#fbbf24":"#2aff6e",borderRadius:2,transition:"width 0.3s"}} />
+                              </div>
+                              <div style={{display:"flex",gap:6}}>
+                                <button className="btn btn-blue" style={{flex:1,fontSize:10,padding:"3px 8px"}} onClick={()=>setEditingFilament({...f})}>Edit</button>
+                                <button className="btn btn-gray" style={{fontSize:10,padding:"3px 8px"}} onClick={()=>{
+                                  const adj = parseInt(prompt(`Adjust grams for ${f.brand} ${f.colorName} ${f.material}
+Current: ${f.totalGrams}g
+
+Enter new total:`));
+                                  if (!isNaN(adj) && adj >= 0) saveFilament({...f, totalGrams: adj});
+                                }}>Adjust</button>
+                                <button className="btn btn-red" style={{flex:1,fontSize:10,padding:"3px 8px"}} onClick={()=>setConfirmDeleteFilament(f.id)}>Remove</button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+
+                  {/* Shopping list */}
+                  {(() => {
+                    const needRestock = inventory.filter(f => f.totalGrams <= LOW_STOCK_THRESHOLD);
+                    if (needRestock.length === 0) return null;
+                    return (
+                      <div>
+                        <div style={{fontSize:11,color:"#fbbf24",letterSpacing:"0.08em",marginBottom:8}}>🛒 SHOPPING LIST</div>
+                        <div className="card" style={{padding:"14px 16px",border:"1px solid #fbbf2422"}}>
+                          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                            {needRestock.sort((a,b)=>a.totalGrams-b.totalGrams).map(f=>(
+                              <div key={f.id} style={{display:"flex",alignItems:"center",gap:10}}>
+                                <div style={{width:12,height:12,borderRadius:3,background:f.color,border:"1px solid #ffffff22",flexShrink:0}} />
+                                <span style={{flex:1,fontSize:12,color:"#aaa"}}>{f.brand} {f.colorName} {f.material}</span>
+                                <span style={{fontSize:11,color:f.totalGrams===0?"#ff6e6e":"#fbbf24"}}>{f.totalGrams===0?"OUT OF STOCK":`${f.totalGrams}g left`}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
       </div>
     </div>
   );
@@ -237,6 +385,64 @@ function LoginScreen({ onLogin }) {
   );
 }
 
+// ── Filament Editor Modal ────────────────────────────────────────────────────
+function FilamentModal({ filament, onSave, onClose }) {
+  const [form, setForm] = useState({ ...filament });
+  const sf = (k,v) => setForm(f=>({...f,[k]:v}));
+  const valid = form.colorName.trim().length > 0 && form.totalGrams > 0;
+  return (
+    <Modal onClose={onClose} maxWidth={440}>
+      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:17,color:"#fff",marginBottom:20}}>
+        {filament.id ? "Edit Filament" : "Add Filament"}
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:16}}>
+        <div>
+          <label style={{fontSize:11,color:"#555",letterSpacing:"0.08em",display:"block",marginBottom:6}}>MATERIAL</label>
+          <select value={form.material} onChange={e=>sf("material",e.target.value)} style={{width:"100%",padding:"8px 10px",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:6,color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:13,outline:"none"}}>
+            {MATERIALS.map(m=><option key={m}>{m}</option>)}
+          </select>
+        </div>
+        <div>
+          <label style={{fontSize:11,color:"#555",letterSpacing:"0.08em",display:"block",marginBottom:6}}>BRAND</label>
+          <select value={form.brand} onChange={e=>sf("brand",e.target.value)} style={{width:"100%",padding:"8px 10px",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:6,color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:13,outline:"none"}}>
+            {BRANDS.map(b=><option key={b}>{b}</option>)}
+          </select>
+        </div>
+      </div>
+      <label style={{fontSize:11,color:"#555",letterSpacing:"0.08em",display:"block",marginBottom:6}}>COLOR NAME</label>
+      <input value={form.colorName} onChange={e=>sf("colorName",e.target.value)} placeholder="e.g. Jade Green"
+        style={{width:"100%",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:6,padding:"8px 12px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:13,marginBottom:16,outline:"none"}} />
+      <label style={{fontSize:11,color:"#555",letterSpacing:"0.08em",display:"block",marginBottom:6}}>COLOR</label>
+      <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:16}}>
+        <label style={{position:"relative",width:40,height:40,flexShrink:0,cursor:"pointer",display:"block",borderRadius:8,border:"2px solid #2a2a3a"}}>
+          <div style={{width:"100%",height:"100%",borderRadius:6,background:form.color}} />
+          <input type="color" value={form.color} onChange={e=>sf("color",e.target.value)}
+            style={{position:"absolute",inset:0,opacity:0,width:"100%",height:"100%",cursor:"pointer"}} />
+        </label>
+        <span style={{fontSize:12,color:"#666",fontFamily:"monospace"}}>{form.color}</span>
+      </div>
+      <label style={{fontSize:11,color:"#555",letterSpacing:"0.08em",display:"block",marginBottom:6}}>TOTAL GRAMS ON HAND</label>
+      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:22}}>
+        <input type="number" min="0" max="10000" value={form.totalGrams} onChange={e=>sf("totalGrams",parseInt(e.target.value)||0)}
+          style={{width:100,background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:6,padding:"8px 12px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:13,outline:"none"}} />
+        <span style={{fontSize:12,color:"#555"}}>grams</span>
+        {form.totalGrams <= LOW_STOCK_THRESHOLD && form.totalGrams > 0 && (
+          <span className="chip" style={{background:"#3d2a0a",color:"#fbbf24",border:"1px solid #fbbf2444"}}>⚠ LOW STOCK</span>
+        )}
+        {form.totalGrams === 0 && (
+          <span className="chip" style={{background:"#3d1a1a",color:"#ff6e6e",border:"1px solid #ff6e6e44"}}>OUT OF STOCK</span>
+        )}
+      </div>
+      <div style={{display:"flex",gap:10}}>
+        <button className="btn btn-gray" style={{flex:1}} onClick={onClose}>Cancel</button>
+        <button className="btn btn-green" style={{flex:2,opacity:valid?1:0.4,cursor:valid?"pointer":"not-allowed"}} onClick={()=>valid&&onSave(form)}>
+          {filament.id?"Save Changes":"Add Filament"}
+        </button>
+      </div>
+    </Modal>
+  );
+}
+
 // ── Main App ──────────────────────────────────────────────────────────────────
 export default function App() {
   const [session, setSession] = useState(null);
@@ -282,6 +488,11 @@ function AppInner({ session, syncing, setSyncing }) {
   const [editingJob, setEditingJob] = useState(null);
   const [dragInfo, setDragInfo] = useState(null);
   const [confirmComplete, setConfirmComplete] = useState(null);
+  const [inventory, setInventory] = useState([]);
+  const [editingFilament, setEditingFilament] = useState(null);
+  const [confirmDeleteFilament, setConfirmDeleteFilament] = useState(null);
+  const [invSort, setInvSort] = useState("brand");
+  const [invFilter, setInvFilter] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
   const [recentColors, setRecentColors] = useState(() => { try { return JSON.parse(localStorage.getItem(LS_RECENT)||"[]"); } catch(_) { return []; } });
   const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem(LS_APIKEY)||""; } catch(_) { return ""; } });
@@ -302,12 +513,14 @@ function AppInner({ session, syncing, setSyncing }) {
       setSyncing(true);
       try {
         const uid = session.user.id;
-        const [{ data: pd }, { data: jd }] = await Promise.all([
+        const [{ data: pd }, { data: jd }, { data: invd }] = await Promise.all([
           supabase.from("printers").select("id,data").eq("user_id", uid),
           supabase.from("jobs").select("id,data").eq("user_id", uid),
+          supabase.from("inventory").select("id,data").eq("user_id", uid),
         ]);
         if (pd && pd.length > 0) setPrinters(pd.map(r => r.data));
         if (jd && jd.length > 0) setJobs(jd.map(r => ({ ...r.data, imageUrl: r.data.imageUrl || null })));
+        if (invd && invd.length > 0) setInventory(invd.map(r => r.data));
       } catch(e) { console.error("Load error:", e); }
       setSyncing(false);
       setLoaded(true);
@@ -315,7 +528,7 @@ function AppInner({ session, syncing, setSyncing }) {
     loadFromCloud();
   }, [session]);
 
-  const syncToCloud = useCallback(async (newPrinters, newJobs) => {
+  const syncToCloud = useCallback(async (newPrinters, newJobs, newInventory=[]) => {
     if (!loaded) return;
     if (syncTimer.current) clearTimeout(syncTimer.current);
     syncTimer.current = setTimeout(async () => {
@@ -324,22 +537,21 @@ function AppInner({ session, syncing, setSyncing }) {
         const uid = session.user.id;
         const printerRows = newPrinters.map(p => ({ id: p.id, user_id: uid, data: p }));
         const jobRows = newJobs.map(j => ({ id: j.id, user_id: uid, data: { ...j, imageUrl: j.imageUrl || null } }));
+        const invRows = newInventory.map(f => ({ id: f.id, user_id: uid, data: f }));
         await Promise.all([
           supabase.from("printers").upsert(printerRows, { onConflict: "id" }),
           supabase.from("jobs").upsert(jobRows, { onConflict: "id" }),
-          // Delete removed printers
+          ...(invRows.length > 0 ? [supabase.from("inventory").upsert(invRows, { onConflict: "id" })] : []),
           ...(newPrinters.length > 0 ? [supabase.from("printers").delete().eq("user_id", uid).not("id", "in", `(${newPrinters.map(p=>p.id).join(",")})`)] : []),
-          // Delete removed jobs
-          ...(newJobs.length > 0 ? [supabase.from("jobs").delete().eq("user_id", uid).not("id", "in", `(${newJobs.map(j=>j.id).join(",")})`)] : [
-            supabase.from("jobs").delete().eq("user_id", uid)
-          ]),
+          ...(newJobs.length > 0 ? [supabase.from("jobs").delete().eq("user_id", uid).not("id", "in", `(${newJobs.map(j=>j.id).join(",")})`)] : [supabase.from("jobs").delete().eq("user_id", uid)]),
+          ...(invRows.length > 0 ? [supabase.from("inventory").delete().eq("user_id", uid).not("id", "in", `(${invRows.map(f=>f.id).join(",")})`)] : []),
         ]);
       } catch(e) { console.error("Sync error:", e); }
       setSyncing(false);
     }, 1500);
   }, [loaded, session]);
 
-  useEffect(() => { if (loaded) syncToCloud(printers, jobs); }, [printers, jobs, loaded]);
+  useEffect(() => { if (loaded) syncToCloud(printers, jobs, inventory); }, [printers, jobs, inventory, loaded]);
 
   // ── Helpers ─────────────────────────────────────────────────────────────────
   function showNotif(msg, type="success") {
@@ -380,6 +592,45 @@ function AppInner({ session, syncing, setSyncing }) {
     setPrinters(prev => prev.map(p => p.id===id ? {...p, status: p.status==="idle"?"printing":"idle"} : p));
   }
 
+  // ── Inventory CRUD ──────────────────────────────────────────────────────────
+  function saveFilament(form) {
+    if (form.id) {
+      setInventory(prev => prev.map(f => f.id===form.id ? {...form} : f));
+      showNotif(`"${form.brand} ${form.colorName} ${form.material}" updated`);
+    } else {
+      const nf = { ...form, id: Date.now() };
+      setInventory(prev => [...prev, nf]);
+      showNotif(`Added ${nf.totalGrams}g of ${nf.brand} ${nf.colorName} ${nf.material}`);
+    }
+    setEditingFilament(null);
+  }
+
+  function deleteFilament(id) {
+    setInventory(prev => prev.filter(f => f.id!==id));
+    setConfirmDeleteFilament(null);
+    showNotif("Filament removed", "warn");
+  }
+
+  function deductFilamentUsage(job) {
+    const totalGrams = job.totalGrams || 0;
+    if (totalGrams <= 0 || !job.colors?.length) return;
+    const perColor = Math.round(totalGrams / job.colors.length);
+    setInventory(prev => {
+      const updated = [...prev];
+      job.colors.forEach(jc => {
+        let bestIdx = -1, bestDist = Infinity;
+        updated.forEach((f, i) => {
+          const dist = colorDistance(jc, f.color);
+          if (dist < bestDist) { bestDist = dist; bestIdx = i; }
+        });
+        if (bestIdx >= 0 && bestDist < 120) {
+          updated[bestIdx] = { ...updated[bestIdx], totalGrams: Math.max(0, updated[bestIdx].totalGrams - perColor) };
+        }
+      });
+      return updated;
+    });
+  }
+
   // ── Job operations ───────────────────────────────────────────────────────────
   function removeJob(jobId) {
     setJobs(prev => prev.filter(j=>j.id!==jobId));
@@ -409,9 +660,10 @@ function AppInner({ session, syncing, setSyncing }) {
 
   function confirmCompleteJob() {
     const jobId = confirmComplete;
+    const job = jobs.find(j=>j.id===jobId);
     setPrinters(prev => prev.map(p => ({...p, queue: p.queue.filter(id=>id!==jobId)})));
     setJobs(prev => prev.map(j => j.id===jobId ? {...j, status:"done"} : j));
-    const job = jobs.find(j=>j.id===jobId);
+    if (job) deductFilamentUsage(job);
     showNotif(`"${job?.partName}" marked complete ✓`);
     setConfirmComplete(null);
   }
@@ -606,6 +858,21 @@ Respond ONLY with valid JSON, no markdown:
       {/* Modals */}
       {editingPrinter && <PrinterModal printer={editingPrinter} onSave={savePrinter} onClose={()=>setEditingPrinter(null)} />}
 
+      {editingFilament && <FilamentModal filament={editingFilament} onSave={saveFilament} onClose={()=>setEditingFilament(null)} />}
+
+      {confirmDeleteFilament && (
+        <Modal onClose={()=>setConfirmDeleteFilament(null)} maxWidth={360}>
+          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,color:"#fff",marginBottom:8}}>Remove Filament?</div>
+          <div style={{fontSize:13,color:"#888",marginBottom:20}}>
+            "{inventory.find(f=>f.id===confirmDeleteFilament)?.brand} {inventory.find(f=>f.id===confirmDeleteFilament)?.colorName}" will be removed from inventory.
+          </div>
+          <div style={{display:"flex",gap:10}}>
+            <button className="btn btn-gray" style={{flex:1}} onClick={()=>setConfirmDeleteFilament(null)}>Cancel</button>
+            <button className="btn btn-red" style={{flex:1}} onClick={()=>deleteFilament(confirmDeleteFilament)}>Remove</button>
+          </div>
+        </Modal>
+      )}
+
       {confirmDelete && (
         <Modal onClose={()=>setConfirmDelete(null)} maxWidth={360}>
           <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,color:"#fff",marginBottom:8}}>Remove Printer?</div>
@@ -693,12 +960,15 @@ Respond ONLY with valid JSON, no markdown:
         {/* Tabs */}
         <div style={{borderBottom:"1px solid #1e1e2e",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",overflowX:"auto"}}>
           <div style={{display:"flex"}}>
-            {[{id:"queue",label:`Queue (${allJobs.length})`},{id:"printers",label:`Printers (${printers.length})`},{id:"completed",label:`Done (${doneJobs.length})`}].map(t=>(
+            {[{id:"queue",label:`Queue (${allJobs.length})`},{id:"printers",label:`Printers (${printers.length})`},{id:"completed",label:`Done (${doneJobs.length})`},{id:"inventory",label:`Inventory (${inventory.length})`}].map(t=>(
               <button key={t.id} className={`tab-btn ${activeTab===t.id?"active":""}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>
             ))}
           </div>
           {activeTab==="printers" && (
             <button className="btn btn-green" style={{marginBottom:2,fontSize:11,padding:"4px 10px"}} onClick={()=>setEditingPrinter({...BLANK_PRINTER})}>+ Add</button>
+          )}
+          {activeTab==="inventory" && (
+            <button className="btn btn-green" style={{marginBottom:2,fontSize:11,padding:"4px 10px"}} onClick={()=>setEditingFilament({...BLANK_FILAMENT})}>+ Add</button>
           )}
         </div>
 
