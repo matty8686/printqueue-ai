@@ -482,6 +482,7 @@ function AppInner({ session, syncing, setSyncing }) {
   const [notification, setNotification] = useState(null);
   const [activeTab, setActiveTab] = useState("queue");
   const [pendingFiles, setPendingFiles] = useState(null);
+  const [pendingPreviewUrl, setPendingPreviewUrl] = useState(null);
   const [slicedForMultiTool, setSlicedForMultiTool] = useState(null);
   const [editingPrinter, setEditingPrinter] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -699,7 +700,7 @@ function AppInner({ session, syncing, setSyncing }) {
 
   // ── Image Analysis ───────────────────────────────────────────────────────────
   async function analyzeImage(file, multiTool) {
-    setAnalyzing(true); setPendingFiles(null); setSlicedForMultiTool(null);
+    setAnalyzing(true); setPendingFiles(null); setPendingPreviewUrl(null); setSlicedForMultiTool(null);
     try {
       const base64 = await new Promise((res,rej) => {
         const r = new FileReader();
@@ -750,10 +751,20 @@ Respond ONLY with valid JSON, no markdown:
     } finally { setAnalyzing(false); }
   }
 
+  function setFileForPreview(file) {
+    setPendingFiles(file);
+    setSlicedForMultiTool(null);
+    // Use FileReader for preview — more reliable than createObjectURL with clipboard files
+    const reader = new FileReader();
+    reader.onload = (e) => setPendingPreviewUrl(e.target.result);
+    reader.onerror = () => setPendingPreviewUrl(null);
+    reader.readAsDataURL(file);
+  }
+
   function handleFiles(files) {
     const imgs = [...files].filter(f=>f.type.startsWith("image/"));
     if (!imgs.length) return;
-    setPendingFiles(imgs[0]); setSlicedForMultiTool(null);
+    setFileForPreview(imgs[0]);
   }
 
   useEffect(() => {
@@ -762,7 +773,7 @@ Respond ONLY with valid JSON, no markdown:
       const item = [...(e.clipboardData?.items||[])].find(i=>i.type.startsWith("image/"));
       if (!item) return;
       const file = item.getAsFile();
-      if (file) { setPendingFiles(new File([file],`paste-${Date.now()}.png`,{type:file.type})); setSlicedForMultiTool(null); }
+      if (file) setFileForPreview(new File([file],`paste-${Date.now()}.png`,{type:file.type}));
     }
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
@@ -906,7 +917,7 @@ Respond ONLY with valid JSON, no markdown:
         <Modal onClose={()=>{setPendingFiles(null);setSlicedForMultiTool(null);}} maxWidth={420}>
           <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:17,color:"#fff",marginBottom:4}}>How was this sliced?</div>
           <div style={{fontSize:12,color:"#555",marginBottom:14}}>{pendingFiles.name}</div>
-          <img src={URL.createObjectURL(pendingFiles)} alt="" style={{width:"100%",height:130,objectFit:"cover",borderRadius:6,border:"1px solid #2a2a3a",marginBottom:16}} />
+          {pendingPreviewUrl && <img src={pendingPreviewUrl} alt="" style={{width:"100%",height:130,objectFit:"cover",borderRadius:6,border:"1px solid #2a2a3a",marginBottom:16}} />}
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
             {[{val:false,icon:"🖨️",label:"Single Tool",sub:"One extruder"},{val:true,icon:"🔧",label:"Multi-Tool",sub:"Tool changer / MMU"}].map(o=>(
               <button key={String(o.val)} onClick={()=>setSlicedForMultiTool(o.val)}
@@ -918,7 +929,7 @@ Respond ONLY with valid JSON, no markdown:
             ))}
           </div>
           <div style={{display:"flex",gap:10}}>
-            <button className="btn btn-gray" style={{flex:1}} onClick={()=>{setPendingFiles(null);setSlicedForMultiTool(null);}}>Cancel</button>
+            <button className="btn btn-gray" style={{flex:1}} onClick={()=>{setPendingFiles(null);setPendingPreviewUrl(null);setSlicedForMultiTool(null);}}>Cancel</button>
             <button className="btn btn-green" style={{flex:2,opacity:slicedForMultiTool===null?0.4:1,cursor:slicedForMultiTool===null?"not-allowed":"pointer"}}
               onClick={()=>slicedForMultiTool!==null&&analyzeImage(pendingFiles,slicedForMultiTool)}>Analyze →</button>
           </div>
