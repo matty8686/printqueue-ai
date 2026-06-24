@@ -212,7 +212,7 @@ function LoginScreen() {
   async function handleSend() {
     if (!email.trim()) return;
     setLoading(true); setError("");
-    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: window.location.origin } });
+    const { error } = await supabase.auth.signInWithOtp({ email: email.trim(), options: { emailRedirectTo: window.location.origin + import.meta.env.BASE_URL } });
     setLoading(false);
     if (error) setError(error.message);
     else setSent(true);
