@@ -313,7 +313,7 @@ function AppInner({ session, syncing, setSyncing }) {
           supabase.from("printers").select("id,data").eq("user_id", uid),
           supabase.from("jobs").select("id,data").eq("user_id", uid),
         ]);
-        if (pd?.length) setPrinters(pd.map(r=>r.data));
+        if (pd?.length) setPrinters(pd.map(r=>({...r.data, status:"idle"})));
         if (jd?.length) setJobs(jd.map(r=>r.data));
       } catch(e) { console.error("Load error:", e); }
       setSyncing(false);
