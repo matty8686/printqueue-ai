@@ -809,9 +809,9 @@ Respond ONLY in valid JSON, no markdown:
                     const remaining   = timer ? timer.durationSecs-elapsed : null;
                     const isDone      = timer && remaining<=0;
                     const pct         = timer&&!isDone ? Math.min(100,Math.round(elapsed/timer.durationSecs*100)) : isDone?100:0;
-                    const headerBg    = isDone?"#065f46":timer?"#14532d":"#1a3a5c";
-                    const accentColor = isDone?"#10b981":timer?"#22c55e":"#2a5080";
-                    const badgeColor  = isDone?"#10b981":timer?"#22c55e":"#94a3b8";
+                    const headerBg    = isDone?"#065f46":timer?"#14532d":"#1e3a8a";
+                    const accentColor = isDone?"#10b981":timer?"#22c55e":"#3b82f6";
+                    const badgeColor  = isDone?"#10b981":timer?"#22c55e":"#bfdbfe";
                     const statusLabel = isDone?"DONE ✓":timer?"PRINTING":"IDLE";
                     return (
                       <div key={printer.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${accentColor}33`,cursor:"pointer",transition:"border-color 0.2s"}}
@@ -826,7 +826,7 @@ Respond ONLY in valid JSON, no markdown:
                           </span>
                         </div>
                         {/* Body */}
-                        <div style={{background:"#0d1424",padding:"12px 14px"}}>
+                        <div style={{background:"#111827",padding:"12px 14px"}}>
                           {activeJob ? (<>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                               <div style={{fontSize:12,color:"#e2e8f0",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{activeJob.partName}</div>
