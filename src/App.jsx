@@ -285,6 +285,7 @@ function AppInner({ session, syncing, setSyncing }) {
   const [editingJob,         setEditingJob]         = useState(null);
   const [dragInfo,           setDragInfo]           = useState(null);
   const [showApiKey,         setShowApiKey]         = useState(false);
+  const [sidebarOpen,        setSidebarOpen]        = useState(() => window.innerWidth > 640);
   const [activeTimers,       setActiveTimers]       = useState({});
   const [now,                setNow]                = useState(Date.now());
   const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem(LS_APIKEY)||""; } catch(_) { return ""; } });
@@ -674,9 +675,9 @@ Respond ONLY in valid JSON, no markdown:
     <div style={{display:"flex",minHeight:"100vh",background:"#0a0f1e",color:"#e2e8f0",fontFamily:"'IBM Plex Mono',monospace"}}>
 
       {/* ── Sidebar ── */}
-      <aside style={{width:220,background:"#060b14",borderRight:"1px solid #1a2540",display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto"}}>
+      <aside style={{width:sidebarOpen?220:0,minWidth:sidebarOpen?220:0,background:"#060b14",borderRight:sidebarOpen?"1px solid #1a2540":"none",display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto",overflowX:"hidden",transition:"width 0.2s,min-width 0.2s",zIndex:10}}>
         {/* Logo */}
-        <div style={{padding:"20px 16px 16px",borderBottom:"1px solid #1a2540"}}>
+        <div style={{padding:"20px 16px 16px",borderBottom:"1px solid #1a2540",minWidth:220}}>
           <div style={{display:"flex",alignItems:"center",gap:10}}>
             <div style={{width:34,height:34,background:"linear-gradient(135deg,#22c55e,#3b82f6)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>⬡</div>
             <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,color:"#fff",letterSpacing:"-0.02em"}}>PrintQueue<span style={{color:"#22c55e"}}>AI</span></div>
@@ -718,6 +719,17 @@ Respond ONLY in valid JSON, no markdown:
 
       {/* ── Main ── */}
       <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+
+        {/* Top bar with sidebar toggle */}
+        <div style={{display:"flex",alignItems:"center",gap:10,padding:"8px 16px",borderBottom:"1px solid #1a2540",background:"#060b14"}}>
+          <button onClick={()=>setSidebarOpen(v=>!v)}
+            style={{background:"none",border:"1px solid #1a2540",borderRadius:6,color:"#4a5a7a",cursor:"pointer",fontSize:16,width:32,height:32,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            {sidebarOpen?"◀":"☰"}
+          </button>
+          <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:14,color:"#fff"}}>
+            {NAV.find(n=>n.id===activeTab)?.label}
+          </span>
+        </div>
 
         {/* API Key bar */}
         {showApiKey && (
