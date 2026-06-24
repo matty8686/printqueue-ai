@@ -390,9 +390,10 @@ function AppInner({ session, syncing, setSyncing }) {
   }
 
   // ── Job Operations ──
-  function removeJob(jobId) {
+  async function removeJob(jobId) {
     setJobs(prev => prev.filter(j=>j.id!==jobId));
     setPrinters(prev => prev.map(p => ({...p, queue: p.queue.filter(id=>id!==jobId)})));
+    try { await supabase.from("jobs").delete().eq("user_id", session.user.id).eq("id", jobId); } catch(_) {}
   }
   function selectPrinterForJob(jobId, printerId) {
     setJobs(prev => prev.map(j => j.id===jobId ? {...j, assignedPrinterId: printerId?parseInt(printerId):null} : j));
@@ -792,8 +793,8 @@ Respond ONLY in valid JSON, no markdown:
                   const remaining   = timer ? timer.durationSecs - elapsed : null;
                   const isDone      = timer && remaining <= 0;
                   const pct         = timer && !isDone ? Math.min(100, Math.round(elapsed/timer.durationSecs*100)) : isDone ? 100 : 0;
-                  const statusColor = isDone?"#2aff6e":timer?"#00b8ff":printer.status==="printing"?"#ffaa2a":"#444";
-                  const statusLabel = isDone?"DONE ✓":timer?"PRINTING":printer.status==="printing"?"PRINTING":"IDLE";
+                  const statusColor = isDone?"#2aff6e":timer?"#00b8ff":"#444";
+                  const statusLabel = isDone?"DONE ✓":timer?"PRINTING":"IDLE";
 
                   return (
                     <div key={printer.id} className="card" onClick={()=>setActiveTab("printers")}
