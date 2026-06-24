@@ -455,23 +455,23 @@ function AppInner({ session, syncing, setSyncing }) {
   }
   function handleFiles(files) {
     const imgs = [...files].filter(f=>f.type.startsWith("image/"));
-    if (imgs.length) setFileForPreview(imgs[0]);
+    if (imgs.length) analyzeImage(imgs[0]);
   }
   useEffect(() => {
     function onPaste(e) {
-      if (analyzing || pendingFile) return;
+      if (analyzing) return;
       const item = [...(e.clipboardData?.items||[])].find(i=>i.type.startsWith("image/"));
       if (!item) return;
       const file = item.getAsFile();
-      if (file) setFileForPreview(new File([file], `paste-${Date.now()}.png`, {type:file.type}));
+      if (file) analyzeImage(new File([file], `paste-${Date.now()}.png`, {type:file.type}));
     }
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
-  }, [analyzing, pendingFile]);
+  }, [analyzing]);
 
   // ── Image Analysis ──
-  async function analyzeImage(file, multiTool) {
-    setAnalyzing(true); setPendingFile(null); setPendingPreview(null); setSlicedForMultiTool(null);
+  async function analyzeImage(file) {
+    setAnalyzing(true);
     try {
       const base64 = await new Promise((res,rej) => {
         const r = new FileReader();
@@ -479,17 +479,18 @@ function AppInner({ session, syncing, setSyncing }) {
         r.onerror = rej;
         r.readAsDataURL(file);
       });
-      const prompt = `Analyze this 3D slicer screenshot. Sliced for a ${multiTool?"MULTI-TOOL":"SINGLE-TOOL"} printer.
+      const prompt = `Analyze this 3D slicer screenshot.
 Extract:
-1. All filament colors visible (as hex codes)
-2. Print time if visible (e.g. "4h 23m"), or null
-3. Part name or filename, or a short description
-4. Color count — for single-tool always return 1
-5. Total filament used in grams (sum the Total column), or null
-6. Total purge weight in grams (sum the Purged column), or null
+1. The printer brand/model name shown in the Printer section (e.g. "Bambu Lab A1 Mini", "Snapmaker U1", "Flashforge Creator 5")
+2. All filament colors visible (as hex codes)
+3. Print time if visible (e.g. "4h 23m"), or null
+4. Part name or filename, or a short description
+5. Color count
+6. Total filament used in grams (sum the Total column), or null
+7. Total purge weight in grams (sum the Purged column), or null
 
 Respond ONLY in valid JSON, no markdown:
-{"colors":["#hex"],"printTime":"Xh Ym or null","partName":"string","colorCount":number,"totalGrams":number or null,"purgeWeightG":number or null,"notes":"string"}`;
+{"printerName":"string","colors":["#hex"],"printTime":"Xh Ym or null","partName":"string","colorCount":number,"totalGrams":number or null,"purgeWeightG":number or null,"notes":"string"}`;
 
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKeyRef.current||""}`;
       const res = await fetch(url, {
@@ -504,6 +505,8 @@ Respond ONLY in valid JSON, no markdown:
       try { parsed = JSON.parse(text.replace(/```json|```/g,"").trim()); }
       catch { throw new Error(`Could not parse AI response: ${text.slice(0,200)}`); }
 
+      const printerName  = (parsed.printerName||"").toLowerCase();
+      const multiTool    = !printerName.includes("bambu");
       const colorCount   = multiTool ? (parsed.colorCount||parsed.colors?.length||1) : 1;
       const colors       = multiTool ? (parsed.colors||["#888888"]) : [parsed.colors?.[0]||"#888888"];
       const purgeWeightG = typeof parsed.purgeWeightG==="number" ? Math.round(parsed.purgeWeightG*10)/10 : null;
@@ -742,28 +745,6 @@ Respond ONLY in valid JSON, no markdown:
         );
       })()}
 
-      {pendingFile && !analyzing && (
-        <Modal onClose={()=>{setPendingFile(null);setPendingPreview(null);setSlicedForMultiTool(null);}} maxWidth={420}>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:17,color:"#fff",marginBottom:4}}>How was this sliced?</div>
-          <div style={{fontSize:12,color:"#555",marginBottom:14}}>{pendingFile.name}</div>
-          {pendingPreview && <img src={pendingPreview} alt="" style={{width:"100%",height:130,objectFit:"cover",borderRadius:6,border:"1px solid #2a2a3a",marginBottom:16}} />}
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:16}}>
-            {[{val:false,icon:"🖨️",label:"Single Tool",sub:"One extruder"},{val:true,icon:"🔧",label:"Multi-Tool",sub:"Tool changer / MMU"}].map(o=>(
-              <button key={String(o.val)} onClick={()=>setSlicedForMultiTool(o.val)}
-                style={{background:slicedForMultiTool===o.val?(o.val?"#3d2a1a":"#1a3d2a"):"#111118",border:`2px solid ${slicedForMultiTool===o.val?(o.val?"#ffaa2a":"#2aff6e"):"#2a2a3a"}`,borderRadius:8,padding:"12px 10px",cursor:"pointer",textAlign:"center"}}>
-                <div style={{fontSize:22,marginBottom:5}}>{o.icon}</div>
-                <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:slicedForMultiTool===o.val?(o.val?"#ffaa2a":"#2aff6e"):"#ccc"}}>{o.label}</div>
-                <div style={{fontSize:11,color:"#555",marginTop:2}}>{o.sub}</div>
-              </button>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:10}}>
-            <button className="btn btn-gray" style={{flex:1}} onClick={()=>{setPendingFile(null);setPendingPreview(null);setSlicedForMultiTool(null);}}>Cancel</button>
-            <button className="btn btn-green" style={{flex:2,opacity:slicedForMultiTool===null?0.4:1,cursor:slicedForMultiTool===null?"not-allowed":"pointer"}}
-              onClick={()=>slicedForMultiTool!==null&&analyzeImage(pendingFile,slicedForMultiTool)}>Analyze →</button>
-          </div>
-        </Modal>
-      )}
 
       {notification && (
         <div style={{position:"fixed",top:16,right:16,zIndex:400,padding:"12px 18px",borderRadius:8,animation:"slideIn 0.3s ease",maxWidth:300,fontSize:12,
