@@ -815,13 +815,15 @@ Respond ONLY in valid JSON, no markdown:
               {/* Stats */}
               <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10}}>
                 {[
-                  {label:"PRINTING",   value:Object.keys(activeTimers).length,                      color:"#22c55e", bg:"#052e16"},
-                  {label:"IDLE",       value:printers.filter(p=>!activeTimers[p.id]).length,         color:"#64748b", bg:"#0f172a"},
-                  {label:"IN QUEUE",   value:queuedJobs.length,                                      color:"#3b82f6", bg:"#0f1e36"},
-                  {label:"PENDING",    value:pendingJobs.length,                                     color:"#f59e0b", bg:"#1c1003"},
-                  {label:"COMPLETED",  value:doneJobs.length,                                        color:"#10b981", bg:"#022c22"},
+                  {label:"PRINTING",   value:Object.keys(activeTimers).length,                      color:"#22c55e", bg:"#052e16", tab:"printers"},
+                  {label:"IDLE",       value:printers.filter(p=>!activeTimers[p.id]).length,         color:"#64748b", bg:"#0f172a", tab:"printers"},
+                  {label:"IN QUEUE",   value:queuedJobs.length,                                      color:"#3b82f6", bg:"#0f1e36", tab:"queue"},
+                  {label:"PENDING",    value:pendingJobs.length,                                     color:"#f59e0b", bg:"#1c1003", tab:"queue"},
+                  {label:"COMPLETED",  value:doneJobs.length,                                        color:"#10b981", bg:"#022c22", tab:"completed"},
                 ].map(s=>(
-                  <div key={s.label} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:10,padding:"16px 14px",textAlign:"center"}}>
+                  <div key={s.label} onClick={()=>setActiveTab(s.tab)} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:10,padding:"16px 14px",textAlign:"center",cursor:"pointer",transition:"border-color 0.15s"}}
+                    onMouseEnter={e=>e.currentTarget.style.borderColor=s.color+"66"}
+                    onMouseLeave={e=>e.currentTarget.style.borderColor=s.color+"22"}>
                     <div style={{fontSize:32,fontWeight:700,color:s.color,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1}}>{s.value}</div>
                     <div style={{fontSize:10,color:s.color+"88",letterSpacing:"0.1em",marginTop:6}}>{s.label}</div>
                   </div>
