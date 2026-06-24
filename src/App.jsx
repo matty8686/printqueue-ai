@@ -848,7 +848,12 @@ Respond ONLY in valid JSON, no markdown:
                         <div style={{background:"#111827",padding:"12px 14px"}}>
                           {activeJob ? (<>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                              <div style={{fontSize:12,color:"#e2e8f0",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{activeJob.partName}</div>
+                              {editingJob===activeJob.id
+                                ? <input value={activeJob.partName} onChange={e=>updateJobField(activeJob.id,"partName",e.target.value)}
+                                    onBlur={()=>setEditingJob(null)} onKeyDown={e=>{if(e.key==="Enter"||e.key==="Escape")setEditingJob(null);}}
+                                    autoFocus style={{flex:1,marginRight:8,background:"#0a0f1e",border:"1px solid #3b82f6",borderRadius:4,padding:"2px 6px",color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:12,outline:"none"}} />
+                                : <div onClick={()=>setEditingJob(activeJob.id)} style={{fontSize:12,color:"#e2e8f0",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8,cursor:"pointer",borderBottom:"1px dashed #334155"}} title="Click to rename">{activeJob.partName}</div>
+                              }
                               {printerJobs.length>0 && <span style={{fontSize:10,color:"#64748b",flexShrink:0}}>{printerJobs.indexOf(activeJob)+1} of {printerJobs.length}</span>}
                             </div>
                             {timer && !isDone && (<>
@@ -968,7 +973,12 @@ Respond ONLY in valid JSON, no markdown:
                                 {job.imageUrl && <img src={job.imageUrl} alt="" style={{width:80,height:60,objectFit:"cover",borderRadius:6,border:"1px solid #1a2540",flexShrink:0}} />}
                                 <div style={{flex:1,minWidth:0}}>
                                   <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6}}>
-                                    <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:15,color:"#fff"}}>{job.partName}</span>
+                                    {editingJob===job.id
+                                      ? <input value={job.partName} onChange={e=>updateJobField(job.id,"partName",e.target.value)}
+                                          onBlur={()=>setEditingJob(null)} onKeyDown={e=>{if(e.key==="Enter"||e.key==="Escape")setEditingJob(null);}}
+                                          autoFocus style={{background:"#0a0f1e",border:"1px solid #3b82f6",borderRadius:4,padding:"2px 8px",color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:15,outline:"none",minWidth:120}} />
+                                      : <span onClick={()=>setEditingJob(job.id)} style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:15,color:"#fff",cursor:"pointer",borderBottom:"1px dashed #334155"}} title="Click to rename">{job.partName}</span>
+                                    }
                                     <span style={{background:job.slicedForMultiTool?"#1e1040":"#0a2010",color:job.slicedForMultiTool?"#a78bfa":"#4ade80",border:`1px solid ${job.slicedForMultiTool?"#a78bfa33":"#4ade8033"}`,borderRadius:20,fontSize:10,fontWeight:700,padding:"2px 9px"}}>
                                       {job.slicedForMultiTool?"🔧 MULTI":"🖨️ SINGLE"}
                                     </span>
@@ -1145,7 +1155,12 @@ Respond ONLY in valid JSON, no markdown:
                         <div style={{background:"#0a0f1e",border:`1px solid ${isDone?"#10b98133":"#22c55e33"}`,borderRadius:8,padding:"10px 14px",marginBottom:14}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:isDone?0:6}}>
                             <div style={{width:8,height:8,borderRadius:"50%",background:isDone?"#10b981":"#22c55e",flexShrink:0,animation:"pulse 2s infinite"}} />
-                            <span style={{fontSize:13,color:"#fff",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeJob.partName}</span>
+                            {editingJob===activeJob.id
+                              ? <input value={activeJob.partName} onChange={e=>updateJobField(activeJob.id,"partName",e.target.value)}
+                                  onBlur={()=>setEditingJob(null)} onKeyDown={e=>{if(e.key==="Enter"||e.key==="Escape")setEditingJob(null);}}
+                                  autoFocus style={{flex:1,background:"#0a0f1e",border:"1px solid #3b82f6",borderRadius:4,padding:"2px 6px",color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,outline:"none"}} />
+                              : <span onClick={()=>setEditingJob(activeJob.id)} style={{fontSize:13,color:"#fff",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",cursor:"pointer",borderBottom:"1px dashed #334155"}} title="Click to rename">{activeJob.partName}</span>
+                            }
                             {isDone ? <span style={{fontSize:11,color:"#10b981"}}>✓ Done!</span>
                               : timer.editingTime ? (
                                 <div style={{display:"flex",alignItems:"center",gap:4}}>
