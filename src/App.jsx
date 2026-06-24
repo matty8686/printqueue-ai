@@ -394,8 +394,27 @@ function AppInner({ session, syncing, setSyncing }) {
   }
   function updateTimerDuration(printerId, secs) {
     const startedAt = Date.now();
-    setActiveTimers(prev => ({...prev, [printerId]: { ...prev[printerId], durationSecs: secs, startedAt, editingTime: false }}));
+    setActiveTimers(prev => ({...prev, [printerId]: { ...prev[printerId], durationSecs: secs, startedAt, editingTime: false, editValue: "" }}));
     setPrinters(prev => prev.map(p => p.id===printerId ? {...p, timerStartedAt: startedAt, timerDurationSecs: secs} : p));
+  }
+  function startEditTimer(printerId, remainingSecs) {
+    const totalMins = Math.ceil(remainingSecs / 60);
+    const h = Math.floor(totalMins / 60);
+    const m = totalMins % 60;
+    const val = h > 0 ? `${h}h ${m}m` : `${totalMins}m`;
+    setActiveTimers(prev => ({...prev, [printerId]: {...prev[printerId], editingTime: true, editValue: val}}));
+  }
+  function saveEditTimer(printerId) {
+    const secs = parsePrintTime(activeTimers[printerId]?.editValue||"");
+    if (!secs) { showNotif("Try a format like '1h 20m' or '45m'", "warn"); return; }
+    updateTimerDuration(printerId, secs);
+    showNotif("Time updated");
+  }
+  function cancelEditTimer(printerId) {
+    setActiveTimers(prev => ({...prev, [printerId]: {...prev[printerId], editingTime: false, editValue: ""}}));
+  }
+  function setEditTimerValue(printerId, val) {
+    setActiveTimers(prev => ({...prev, [printerId]: {...prev[printerId], editValue: val}}));
   }
 
   // ── Job Operations ──
@@ -836,7 +855,20 @@ Respond ONLY in valid JSON, no markdown:
                               <div style={{height:4,background:"#1e293b",borderRadius:2,overflow:"hidden",marginBottom:5}}>
                                 <div style={{height:"100%",width:`${pct}%`,background:"#22c55e",borderRadius:2}} />
                               </div>
-                              <div style={{fontSize:11,color:"#22c55e",fontWeight:600,marginBottom:8}}>{pct}% · {formatCountdown(remaining)}</div>
+                              <div style={{fontSize:11,color:"#22c55e",fontWeight:600,marginBottom:8,display:"flex",alignItems:"center",gap:6}}>
+                                {pct}% ·{" "}
+                                {timer.editingTime ? (
+                                  <>
+                                    <input value={timer.editValue||""} onChange={e=>setEditTimerValue(printer.id,e.target.value)}
+                                      onKeyDown={e=>{if(e.key==="Enter")saveEditTimer(printer.id);if(e.key==="Escape")cancelEditTimer(printer.id);}}
+                                      autoFocus style={{width:72,background:"#0a0f1e",border:"1px solid #22c55e",borderRadius:4,padding:"1px 6px",color:"#22c55e",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,outline:"none"}} />
+                                    <button onClick={()=>saveEditTimer(printer.id)} style={{background:"none",border:"none",color:"#22c55e",cursor:"pointer",fontSize:12,padding:0}}>✓</button>
+                                    <button onClick={()=>cancelEditTimer(printer.id)} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:12,padding:0}}>✕</button>
+                                  </>
+                                ) : (
+                                  <span onClick={()=>startEditTimer(printer.id,remaining)} style={{cursor:"pointer",borderBottom:"1px dashed #22c55e55"}} title="Click to edit">{formatCountdown(remaining)}</span>
+                                )}
+                              </div>
                             </>)}
                             {isDone && <div style={{fontSize:11,color:"#10b981",fontWeight:600,marginBottom:8}}>✓ Print complete</div>}
                             <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
@@ -1115,7 +1147,17 @@ Respond ONLY in valid JSON, no markdown:
                             <div style={{width:8,height:8,borderRadius:"50%",background:isDone?"#10b981":"#22c55e",flexShrink:0,animation:"pulse 2s infinite"}} />
                             <span style={{fontSize:13,color:"#fff",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeJob.partName}</span>
                             {isDone ? <span style={{fontSize:11,color:"#10b981"}}>✓ Done!</span>
-                              : <span style={{fontSize:13,color:"#22c55e",fontWeight:600}}>{formatCountdown(remaining)}</span>}
+                              : timer.editingTime ? (
+                                <div style={{display:"flex",alignItems:"center",gap:4}}>
+                                  <input value={timer.editValue||""} onChange={e=>setEditTimerValue(printer.id,e.target.value)}
+                                    onKeyDown={e=>{if(e.key==="Enter")saveEditTimer(printer.id);if(e.key==="Escape")cancelEditTimer(printer.id);}}
+                                    autoFocus style={{width:72,background:"#0a0f1e",border:"1px solid #22c55e",borderRadius:4,padding:"2px 6px",color:"#22c55e",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,outline:"none"}} />
+                                  <button onClick={()=>saveEditTimer(printer.id)} style={{background:"none",border:"none",color:"#22c55e",cursor:"pointer",fontSize:13,padding:0}}>✓</button>
+                                  <button onClick={()=>cancelEditTimer(printer.id)} style={{background:"none",border:"none",color:"#64748b",cursor:"pointer",fontSize:13,padding:0}}>✕</button>
+                                </div>
+                              ) : (
+                                <span onClick={()=>startEditTimer(printer.id,remaining)} style={{fontSize:13,color:"#22c55e",fontWeight:600,cursor:"pointer",borderBottom:"1px dashed #22c55e55"}} title="Click to edit">{formatCountdown(remaining)}</span>
+                              )}
                           </div>
                           {!isDone && (<>
                             <div style={{height:4,background:"#1a2540",borderRadius:2,overflow:"hidden",marginBottom:6}}>
