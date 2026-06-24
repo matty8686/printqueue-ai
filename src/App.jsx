@@ -809,9 +809,9 @@ Respond ONLY in valid JSON, no markdown:
                     const remaining   = timer ? timer.durationSecs-elapsed : null;
                     const isDone      = timer && remaining<=0;
                     const pct         = timer&&!isDone ? Math.min(100,Math.round(elapsed/timer.durationSecs*100)) : isDone?100:0;
-                    const headerBg    = isDone?"#065f46":timer?"#14532d":"#0f1e36";
-                    const accentColor = isDone?"#10b981":timer?"#22c55e":"#334155";
-                    const badgeColor  = isDone?"#10b981":timer?"#22c55e":"#64748b";
+                    const headerBg    = isDone?"#065f46":timer?"#14532d":"#1a3a5c";
+                    const accentColor = isDone?"#10b981":timer?"#22c55e":"#2a5080";
+                    const badgeColor  = isDone?"#10b981":timer?"#22c55e":"#94a3b8";
                     const statusLabel = isDone?"DONE ✓":timer?"PRINTING":"IDLE";
                     return (
                       <div key={printer.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${accentColor}33`,cursor:"pointer",transition:"border-color 0.2s"}}
@@ -830,7 +830,7 @@ Respond ONLY in valid JSON, no markdown:
                           {activeJob ? (<>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                               <div style={{fontSize:12,color:"#e2e8f0",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{activeJob.partName}</div>
-                              {printerJobs.length>0 && <span style={{fontSize:10,color:"#334155",flexShrink:0}}>{printerJobs.indexOf(activeJob)+1} of {printerJobs.length}</span>}
+                              {printerJobs.length>0 && <span style={{fontSize:10,color:"#64748b",flexShrink:0}}>{printerJobs.indexOf(activeJob)+1} of {printerJobs.length}</span>}
                             </div>
                             {timer && !isDone && (<>
                               <div style={{height:4,background:"#1e293b",borderRadius:2,overflow:"hidden",marginBottom:5}}>
@@ -862,10 +862,10 @@ Respond ONLY in valid JSON, no markdown:
                               )}
                             </div>
                           </>) : (
-                            <div style={{fontSize:12,color:"#1e293b",fontStyle:"italic",padding:"8px 0"}}>No jobs queued</div>
+                            <div style={{fontSize:12,color:"#475569",fontStyle:"italic",padding:"8px 0"}}>No jobs queued</div>
                           )}
                           {printerJobs.length>1 && (
-                            <div style={{fontSize:10,color:"#1e293b",marginTop:8,paddingTop:8,borderTop:"1px solid #1a2540"}}>+{printerJobs.length-1} more in queue</div>
+                            <div style={{fontSize:10,color:"#64748b",marginTop:8,paddingTop:8,borderTop:"1px solid #1a2540"}}>+{printerJobs.length-1} more in queue</div>
                           )}
                         </div>
                       </div>
