@@ -310,7 +310,16 @@ function AppInner({ session, syncing, setSyncing }) {
           supabase.from("printers").select("id,data").eq("user_id", uid),
           supabase.from("jobs").select("id,data").eq("user_id", uid),
         ]);
-        if (pd?.length) setPrinters(pd.map(r=>({...r.data, status:"idle"})));
+        if (pd?.length) {
+          const restoredTimers = {};
+          pd.forEach(r => {
+            if (r.data.timerStartedAt) {
+              restoredTimers[r.data.id] = { jobId: r.data.timerJobId, startedAt: r.data.timerStartedAt, durationSecs: r.data.timerDurationSecs, editingTime: false };
+            }
+          });
+          if (Object.keys(restoredTimers).length) setActiveTimers(restoredTimers);
+          setPrinters(pd.map(r=>({...r.data, status:"idle"})));
+        }
         if (jd?.length) setJobs(jd.map(r=>r.data));
       } catch(e) { console.error("Load error:", e); }
       setSyncing(false);
@@ -374,16 +383,19 @@ function AppInner({ session, syncing, setSyncing }) {
   function startTimer(printerId, job, customSecs=null) {
     const secs = customSecs || parsePrintTime(job.printTime);
     if (!secs) { showNotif("Couldn't parse print time — edit it first", "warn"); return; }
-    setActiveTimers(prev => ({...prev, [printerId]: { jobId: job.id, startedAt: Date.now(), durationSecs: secs, editingTime: false }}));
-    setPrinters(prev => prev.map(p => p.id===printerId ? {...p, status:"printing"} : p));
+    const startedAt = Date.now();
+    setActiveTimers(prev => ({...prev, [printerId]: { jobId: job.id, startedAt, durationSecs: secs, editingTime: false }}));
+    setPrinters(prev => prev.map(p => p.id===printerId ? {...p, status:"printing", timerJobId: job.id, timerStartedAt: startedAt, timerDurationSecs: secs} : p));
     showNotif(`Timer started for "${job.partName}"`);
   }
   function stopTimer(printerId) {
     setActiveTimers(prev => { const n={...prev}; delete n[printerId]; return n; });
-    setPrinters(prev => prev.map(p => p.id===printerId ? {...p, status:"idle"} : p));
+    setPrinters(prev => prev.map(p => p.id===printerId ? {...p, status:"idle", timerJobId: null, timerStartedAt: null, timerDurationSecs: null} : p));
   }
   function updateTimerDuration(printerId, secs) {
-    setActiveTimers(prev => ({...prev, [printerId]: { ...prev[printerId], durationSecs: secs, startedAt: Date.now(), editingTime: false }}));
+    const startedAt = Date.now();
+    setActiveTimers(prev => ({...prev, [printerId]: { ...prev[printerId], durationSecs: secs, startedAt, editingTime: false }}));
+    setPrinters(prev => prev.map(p => p.id===printerId ? {...p, timerStartedAt: startedAt, timerDurationSecs: secs} : p));
   }
 
   // ── Job Operations ──
