@@ -32,25 +32,22 @@ const BLANK_FILAMENT_SLOT = { color: "#FFFFFF", colorName: "White", material: "P
   el.textContent = `
     @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=Space+Grotesk:wght@400;600;700&display=swap');
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #0a0a0f; }
-    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #111; } ::-webkit-scrollbar-thumb { background: #2a4; border-radius: 2px; }
-    .tab-btn { background: none; border: none; cursor: pointer; padding: 8px 10px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #666; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
-    .tab-btn.active { color: #2aff6e; border-bottom-color: #2aff6e; }
-    .tab-btn:hover:not(.active) { color: #aaa; }
+    body { background: #0a0f1e; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: #0a0f1e; } ::-webkit-scrollbar-thumb { background: #1a2540; border-radius: 2px; }
+    ::-webkit-scrollbar-thumb:hover { background: #334155; }
     .chip { display: inline-block; padding: 2px 7px; border-radius: 3px; font-size: 10px; font-weight: 600; letter-spacing: 0.05em; }
-    .btn { border: none; border-radius: 4px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; padding: 6px 14px; transition: all 0.15s; }
-    .btn-green { background: #1a3d2a; color: #2aff6e; border: 1px solid #2aff6e44; }
-    .btn-green:hover { background: #2aff6e22; }
-    .btn-red { background: #3d1a1a; color: #ff6e6e; border: 1px solid #ff6e6e44; }
-    .btn-red:hover { background: #ff6e6e22; }
-    .btn-gray { background: #1a1a2a; color: #888; border: 1px solid #333; }
-    .btn-gray:hover { background: #2a2a3a; }
-    .btn-blue { background: #1a2a3d; color: #00b8ff; border: 1px solid #00b8ff44; }
-    .btn-blue:hover { background: #00b8ff22; }
-    .card { background: #111118; border: 1px solid #1e1e2e; border-radius: 8px; }
+    .btn { border: none; border-radius: 6px; cursor: pointer; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; padding: 6px 14px; transition: all 0.15s; }
+    .btn-green { background: #14532d; color: #22c55e; border: 1px solid #22c55e44; }
+    .btn-green:hover { background: #166534; }
+    .btn-red { background: #450a0a; color: #f87171; border: 1px solid #f8717144; }
+    .btn-red:hover { background: #7f1d1d; }
+    .btn-gray { background: #0f1e36; color: #64748b; border: 1px solid #1a2540; }
+    .btn-gray:hover { background: #1a2540; color: #94a3b8; }
+    .btn-blue { background: #0f1e36; color: #60a5fa; border: 1px solid #60a5fa44; }
+    .btn-blue:hover { background: #172554; }
+    .card { background: #0d1424; border: 1px solid #1a2540; border-radius: 10px; }
     .printer-card { transition: border-color 0.2s; }
-    .printer-card:hover { border-color: #2aff6e44; }
-    select { background: #111118; color: #e2e8f0; border: 1px solid #333; border-radius: 4px; padding: 4px 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
+    select { background: #0a0f1e; color: #e2e8f0; border: 1px solid #1a2540; border-radius: 6px; padding: 4px 8px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }
     input[type=number] { color-scheme: dark; }
     @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:0.4} }
     @keyframes slideIn { from{opacity:0;transform:translateY(-10px)} to{opacity:1;transform:translateY(0)} }
@@ -625,38 +622,93 @@ Respond ONLY in valid JSON, no markdown:
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  const NAV = [
+    {id:"dashboard", icon:"▦",  label:"Dashboard"},
+    {id:"queue",     icon:"≡",  label:"Queue",     count:allJobs.length},
+    {id:"printers",  icon:"⬡",  label:"Printers",  count:printers.length},
+    {id:"completed", icon:"✓",  label:"Completed", count:doneJobs.length},
+  ];
+
   return (
-    <div style={{fontFamily:"'IBM Plex Mono',monospace",background:"#0a0a0f",minHeight:"100vh",color:"#e2e8f0"}}>
+    <div style={{display:"flex",minHeight:"100vh",background:"#0a0f1e",color:"#e2e8f0",fontFamily:"'IBM Plex Mono',monospace"}}>
 
-      {/* Header */}
-      <div style={{background:"#0d0d15",borderBottom:"1px solid #1e1e2e",padding:"10px 16px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
-        <div style={{display:"flex",alignItems:"center",gap:10}}>
-          <div style={{width:30,height:30,background:"linear-gradient(135deg,#2aff6e,#00b8ff)",borderRadius:6,display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,flexShrink:0}}>⬡</div>
-          <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,color:"#fff",letterSpacing:"-0.02em"}}>PrintQueue<span style={{color:"#2aff6e"}}>AI</span></div>
-        </div>
-        <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
-          {syncing   && <span style={{fontSize:10,color:"#2aff6e",animation:"pulse 1s infinite"}}>syncing…</span>}
-          {!syncing && loaded && <span style={{fontSize:10,color:"#2a4a2a"}}>☁ synced</span>}
-          <div style={{display:"flex",alignItems:"center",gap:5}}>
-            <div style={{width:7,height:7,borderRadius:"50%",background:apiKey?"#2aff6e":"#ff6e6e"}} />
-            <button className="btn btn-gray" style={{fontSize:10,padding:"3px 8px"}} onClick={()=>setShowApiKey(v=>!v)}>
-              {apiKey?"API key ✓":"Set API key"}
-            </button>
+      {/* ── Sidebar ── */}
+      <aside style={{width:220,background:"#060b14",borderRight:"1px solid #1a2540",display:"flex",flexDirection:"column",flexShrink:0,position:"sticky",top:0,height:"100vh",overflowY:"auto"}}>
+        {/* Logo */}
+        <div style={{padding:"20px 16px 16px",borderBottom:"1px solid #1a2540"}}>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <div style={{width:34,height:34,background:"linear-gradient(135deg,#22c55e,#3b82f6)",borderRadius:8,display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>⬡</div>
+            <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:16,color:"#fff",letterSpacing:"-0.02em"}}>PrintQueue<span style={{color:"#22c55e"}}>AI</span></div>
           </div>
-          <button className="btn btn-gray" style={{fontSize:10,padding:"3px 8px"}}
-            onClick={async()=>{ if(window.confirm("Sign out?")) await supabase.auth.signOut(); }}>Sign out</button>
         </div>
-      </div>
+        {/* Nav */}
+        <nav style={{flex:1,padding:"12px 8px"}}>
+          {NAV.map(item=>(
+            <button key={item.id} onClick={()=>setActiveTab(item.id)}
+              style={{width:"100%",display:"flex",alignItems:"center",gap:10,padding:"10px 12px",borderRadius:8,border:"none",cursor:"pointer",background:activeTab===item.id?"#0f1e36":"transparent",color:activeTab===item.id?"#22c55e":"#4a5a7a",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,marginBottom:2,textAlign:"left",transition:"all 0.15s"}}>
+              <span style={{fontSize:15,width:18,textAlign:"center",flexShrink:0}}>{item.icon}</span>
+              <span style={{flex:1}}>{item.label}</span>
+              {item.count!==undefined && item.count>0 && (
+                <span style={{background:activeTab===item.id?"#14532d":"#0f1e36",color:activeTab===item.id?"#22c55e":"#4a5a7a",borderRadius:12,fontSize:10,padding:"1px 7px"}}>{item.count}</span>
+              )}
+            </button>
+          ))}
+          {activeTab==="printers" && (
+            <button className="btn btn-green" style={{width:"100%",marginTop:8,fontSize:11}} onClick={()=>setEditingPrinter({...BLANK_PRINTER})}>+ Add Printer</button>
+          )}
+        </nav>
+        {/* Bottom */}
+        <div style={{padding:"10px 8px",borderTop:"1px solid #1a2540"}}>
+          <div style={{display:"flex",alignItems:"center",gap:6,padding:"6px 12px",marginBottom:4}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:syncing?"#f59e0b":loaded?"#22c55e":"#4a5a7a",flexShrink:0,animation:syncing?"pulse 1s infinite":"none"}} />
+            <span style={{fontSize:10,color:"#4a5a7a"}}>{syncing?"syncing…":loaded?"synced":"—"}</span>
+          </div>
+          <button className="btn btn-gray" style={{width:"100%",textAlign:"left",marginBottom:4,fontSize:11,padding:"8px 12px",display:"flex",alignItems:"center",gap:8}} onClick={()=>setShowApiKey(v=>!v)}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:apiKey?"#22c55e":"#ef4444",flexShrink:0}} />
+            {apiKey?"Gemini key ✓":"Set Gemini key"}
+          </button>
+          <div style={{padding:"4px 12px",fontSize:10,color:"#1e3050",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:2}}>{session.user.email}</div>
+          <button onClick={async()=>{if(window.confirm("Sign out?")) await supabase.auth.signOut();}}
+            style={{width:"100%",display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,border:"none",cursor:"pointer",background:"transparent",color:"#4a5a7a",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:12,textAlign:"left"}}>
+            ⎋ Sign out
+          </button>
+        </div>
+      </aside>
 
-      {/* API Key Bar */}
-      {showApiKey && (
-        <div style={{background:"#0d0d15",borderBottom:"1px solid #1e1e2e",padding:"10px 16px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
-          <span style={{fontSize:12,color:"#555",flexShrink:0}}>Gemini API Key:</span>
-          <input type="password" value={apiKey} onChange={e=>saveApiKey(e.target.value)} placeholder="AIza..."
-            style={{flex:1,minWidth:180,maxWidth:380,background:"#111118",border:"1px solid #2a2a3a",borderRadius:6,padding:"6px 12px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:13,outline:"none"}} />
-          <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>setShowApiKey(false)}>Done</button>
+      {/* ── Main ── */}
+      <div style={{flex:1,display:"flex",flexDirection:"column",minWidth:0}}>
+
+        {/* API Key bar */}
+        {showApiKey && (
+          <div style={{background:"#060b14",borderBottom:"1px solid #1a2540",padding:"10px 20px",display:"flex",alignItems:"center",gap:10,flexWrap:"wrap"}}>
+            <span style={{fontSize:12,color:"#4a5a7a",flexShrink:0}}>Gemini API Key:</span>
+            <input type="password" value={apiKey} onChange={e=>saveApiKey(e.target.value)} placeholder="AIza..."
+              style={{flex:1,minWidth:180,maxWidth:380,background:"#0a0f1e",border:"1px solid #1a2540",borderRadius:6,padding:"6px 12px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:13,outline:"none"}} />
+            <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>setShowApiKey(false)}>Done</button>
+          </div>
+        )}
+
+        {/* Upload zone */}
+        <div style={{padding:"16px 20px 0"}}>
+          <div onClick={()=>!analyzing&&fileRef.current.click()}
+            onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)}
+            onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles([...e.dataTransfer.files]);}}
+            style={{border:`2px dashed ${dragOver?"#22c55e":analyzing?"#3b82f6":"#1a2540"}`,borderRadius:10,padding:"13px 16px",textAlign:"center",cursor:analyzing?"default":"pointer",background:dragOver?"#0a2a1a":analyzing?"#0a1428":"transparent",transition:"all 0.2s"}}>
+            <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>handleFiles([...e.target.files])} />
+            {analyzing ? (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
+                <Spinner color="#3b82f6" />
+                <span style={{color:"#3b82f6",fontSize:13}}>Analyzing screenshot…</span>
+              </div>
+            ) : (
+              <div style={{display:"flex",alignItems:"center",justifyContent:"center",gap:12}}>
+                <span style={{fontSize:18}}>📸</span>
+                <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:"#94a3b8"}}>Drop slicer screenshot</span>
+                <span style={{fontSize:11,color:"#2a3a5a"}}>or click · <kbd style={{background:"#0f1e36",border:"1px solid #1a2540",borderRadius:3,padding:"1px 5px",fontSize:10,color:"#4a5a7a"}}>Ctrl+V</kbd></span>
+              </div>
+            )}
+          </div>
         </div>
-      )}
 
       {/* Modals */}
       {editingPrinter && <PrinterModal printer={editingPrinter} onSave={savePrinter} onClose={()=>setEditingPrinter(null)} />}
@@ -722,465 +774,429 @@ Respond ONLY in valid JSON, no markdown:
         </div>
       )}
 
-      <div style={{maxWidth:1200,margin:"0 auto",padding:"16px 12px"}}>
+        {/* ════════ Content ════════ */}
+        <div style={{padding:"20px"}}>
 
-        {/* Upload Zone */}
-        <div onClick={()=>!analyzing&&fileRef.current.click()}
-          onDragOver={e=>{e.preventDefault();setDragOver(true);}} onDragLeave={()=>setDragOver(false)}
-          onDrop={e=>{e.preventDefault();setDragOver(false);handleFiles([...e.dataTransfer.files]);}}
-          style={{border:`2px dashed ${dragOver?"#2aff6e":analyzing?"#00b8ff":"#2a2a3a"}`,borderRadius:10,padding:"20px 16px",textAlign:"center",cursor:analyzing?"default":"pointer",background:dragOver?"#0d2a1a":"transparent",transition:"all 0.2s",marginBottom:16}}>
-          <input ref={fileRef} type="file" accept="image/*" style={{display:"none"}} onChange={e=>handleFiles([...e.target.files])} />
-          {analyzing ? (
-            <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:10}}>
-              <Spinner color="#00b8ff" />
-              <div style={{color:"#00b8ff",fontSize:13}}>Analyzing screenshot…</div>
-            </div>
-          ) : (
-            <div>
-              <div style={{fontSize:24,marginBottom:6}}>📸</div>
-              <div style={{color:"#ccc",fontSize:13,fontFamily:"'Space Grotesk',sans-serif",fontWeight:600}}>Drop slicer screenshot</div>
-              <div style={{color:"#555",fontSize:11,marginTop:3}}>or click to browse · <kbd style={{background:"#1e1e2e",border:"1px solid #333",borderRadius:3,padding:"1px 5px",fontSize:10,color:"#888"}}>Ctrl+V</kbd> to paste</div>
-            </div>
-          )}
-        </div>
+          {/* DASHBOARD */}
+          {activeTab==="dashboard" && (
+            <div style={{display:"flex",flexDirection:"column",gap:20}}>
 
-        {/* Tabs */}
-        <div style={{borderBottom:"1px solid #1e1e2e",marginBottom:16,display:"flex",justifyContent:"space-between",alignItems:"center",overflowX:"auto"}}>
-          <div style={{display:"flex"}}>
-            {[
-              {id:"dashboard", label:"Dashboard"},
-              {id:"queue",     label:`Queue (${allJobs.length})`},
-              {id:"printers",  label:`Printers (${printers.length})`},
-              {id:"completed", label:`Done (${doneJobs.length})`},
-            ].map(t=>(
-              <button key={t.id} className={`tab-btn ${activeTab===t.id?"active":""}`} onClick={()=>setActiveTab(t.id)}>{t.label}</button>
-            ))}
-          </div>
-          {activeTab==="printers" && (
-            <button className="btn btn-green" style={{fontSize:11,padding:"3px 10px",flexShrink:0}} onClick={()=>setEditingPrinter({...BLANK_PRINTER})}>+ Add</button>
-          )}
-        </div>
-
-        {/* ════════ DASHBOARD ════════ */}
-        {activeTab==="dashboard" && (
-          <div style={{display:"flex",flexDirection:"column",gap:16}}>
-
-            {/* Stats row */}
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(130px,1fr))",gap:10}}>
-              {[
-                { label:"PRINTING",    value: Object.keys(activeTimers).length,                                    color:"#00b8ff" },
-                { label:"IDLE",        value: printers.filter(p=>!activeTimers[p.id]&&p.status==="idle").length,   color:"#555"    },
-                { label:"IN QUEUE",    value: queuedJobs.length,                                                   color:"#2aff6e" },
-                { label:"PENDING",     value: pendingJobs.length,                                                  color:"#ffaa2a" },
-                { label:"DONE TODAY",  value: doneJobs.length,                                                     color:"#34d399" },
-              ].map(s=>(
-                <div key={s.label} className="card" style={{padding:"12px",textAlign:"center"}}>
-                  <div style={{fontSize:26,fontWeight:700,color:s.color,fontFamily:"'Space Grotesk',sans-serif"}}>{s.value}</div>
-                  <div style={{fontSize:10,color:"#555",letterSpacing:"0.08em",marginTop:4}}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-
-            {/* Printer grid */}
-            <div>
-              <div style={{fontSize:11,color:"#555",letterSpacing:"0.08em",marginBottom:10}}>FARM STATUS</div>
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:10}}>
-                {printers.map(printer=>{
-                  const timer       = activeTimers[printer.id];
-                  const printerJobs = jobs.filter(j=>printer.queue.includes(j.id));
-                  const activeJob   = timer ? jobs.find(j=>j.id===timer.jobId) : printerJobs[0];
-                  const elapsed     = timer ? (now - timer.startedAt)/1000 : 0;
-                  const remaining   = timer ? timer.durationSecs - elapsed : null;
-                  const isDone      = timer && remaining <= 0;
-                  const pct         = timer && !isDone ? Math.min(100, Math.round(elapsed/timer.durationSecs*100)) : isDone ? 100 : 0;
-                  const statusColor = isDone?"#2aff6e":timer?"#00b8ff":"#444";
-                  const statusLabel = isDone?"DONE ✓":timer?"PRINTING":"IDLE";
-
-                  return (
-                    <div key={printer.id} className="card" onClick={()=>setActiveTab("printers")}
-                      style={{padding:"12px",border:`1px solid ${isDone?"#2aff6e44":timer?"#00b8ff22":"#1e1e2e"}`,cursor:"pointer",transition:"border-color 0.2s"}}
-                      onMouseEnter={e=>e.currentTarget.style.borderColor=isDone?"#2aff6e88":timer?"#00b8ff44":"#2aff6e44"}
-                      onMouseLeave={e=>e.currentTarget.style.borderColor=isDone?"#2aff6e44":timer?"#00b8ff22":"#1e1e2e"}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:6}}>
-                        <div style={{width:8,height:8,borderRadius:"50%",background:statusColor,flexShrink:0,animation:(isDone||timer)?"pulse 2s infinite":"none"}} />
-                        <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:"#fff",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{printer.name}</div>
-                        <span style={{fontSize:9,color:statusColor,letterSpacing:"0.06em",flexShrink:0}}>{statusLabel}</span>
-                      </div>
-                      {activeJob ? (<>
-                        <div style={{fontSize:11,color:"#aaa",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",marginBottom:4}}>{activeJob.partName}</div>
-                        <div style={{display:"flex",gap:3,marginBottom:6}}>
-                          {activeJob.colors?.map((c,i)=><div key={i} style={{width:10,height:10,borderRadius:2,background:c,border:"1px solid #ffffff22"}} />)}
-                        </div>
-                        {timer && !isDone && (<>
-                          <div style={{fontSize:12,color:"#00b8ff",fontWeight:600,marginBottom:2}}>{formatCountdown(remaining)}</div>
-                          <div style={{fontSize:10,color:"#555",marginBottom:6}}>🏁 {formatFinishTime(timer.startedAt, timer.durationSecs)}</div>
-                          <div style={{height:3,background:"#1e1e2e",borderRadius:2,overflow:"hidden"}}>
-                            <div style={{height:"100%",width:`${pct}%`,background:"#00b8ff",borderRadius:2}} />
-                          </div>
-                        </>)}
-                        {isDone && (<>
-                          <div style={{fontSize:11,color:"#2aff6e",fontWeight:600,marginBottom:6}}>✓ Print complete — check printer</div>
-                          <button className="btn btn-green" style={{width:"100%",fontSize:10,padding:"4px"}}
-                            onClick={e=>{e.stopPropagation();completeJob(timer.jobId);stopTimer(printer.id);}}>✓ Mark Complete</button>
-                        </>)}
-                        {!timer && (
-                          <div style={{display:"flex",alignItems:"center",justifyContent:"space-between"}}>
-                            <span style={{fontSize:10,color:"#555"}}>🕐 {activeJob.printTime}</span>
-                            <button className="btn btn-green" style={{fontSize:9,padding:"2px 8px"}}
-                              onClick={e=>{e.stopPropagation();startTimer(printer.id,activeJob);}}>▶ Start</button>
-                          </div>
-                        )}
-                      </>) : (
-                        <div style={{fontSize:11,color:"#444",fontStyle:"italic"}}>No jobs queued</div>
-                      )}
-                      {printerJobs.length>1 && (
-                        <div style={{fontSize:10,color:"#444",marginTop:6,borderTop:"1px solid #1e1e2e",paddingTop:6}}>+{printerJobs.length-1} more queued</div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Active timers sorted by finish time */}
-            {Object.keys(activeTimers).length>0 && (
-              <div>
-                <div style={{fontSize:11,color:"#555",letterSpacing:"0.08em",marginBottom:10}}>ESTIMATED FINISH TIMES</div>
-                <div className="card" style={{padding:"14px 16px"}}>
-                  {Object.entries(activeTimers)
-                    .map(([pid,timer])=>{
-                      const printer   = printers.find(p=>p.id===parseInt(pid));
-                      const job       = jobs.find(j=>j.id===timer.jobId);
-                      const elapsed   = (now-timer.startedAt)/1000;
-                      const remaining = timer.durationSecs-elapsed;
-                      const isDone    = remaining<=0;
-                      return { printer, job, remaining, isDone, finishTs: timer.startedAt+timer.durationSecs*1000, pid, timer };
-                    })
-                    .sort((a,b)=>a.finishTs-b.finishTs)
-                    .map(({printer,job,remaining,isDone,pid,timer},i)=>(
-                      <div key={i} style={{display:"flex",alignItems:"center",gap:12,padding:"8px 0",borderBottom:"1px solid #1e1e2e"}}>
-                        <div style={{width:8,height:8,borderRadius:"50%",background:isDone?"#2aff6e":"#00b8ff",flexShrink:0,animation:"pulse 2s infinite"}} />
-                        <div style={{flex:1,minWidth:0}}>
-                          <div style={{fontSize:12,color:"#fff",fontWeight:600}}>{printer?.name}</div>
-                          <div style={{fontSize:11,color:"#aaa",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job?.partName}</div>
-                        </div>
-                        <div style={{textAlign:"right",flexShrink:0}}>
-                          {isDone ? (
-                            <div style={{fontSize:12,color:"#2aff6e",fontWeight:600}}>✓ Done</div>
-                          ) : (<>
-                            <div style={{fontSize:12,color:"#00b8ff",fontWeight:600}}>{formatCountdown(remaining)}</div>
-                            <div style={{fontSize:10,color:"#555"}}>{formatFinishTime(timer.startedAt, timer.durationSecs)}</div>
-                          </>)}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ════════ QUEUE TAB ════════ */}
-        {activeTab==="queue" && (
-          <div>
-            {allJobs.length===0 ? (
-              <div style={{textAlign:"center",padding:"48px 0",color:"#444"}}>
-                <div style={{fontSize:36,marginBottom:10}}>🖨️</div>
-                <div style={{fontSize:13}}>No jobs yet. Upload a slicer screenshot to start.</div>
-              </div>
-            ) : (
-              <div style={{display:"flex",flexDirection:"column",gap:16}}>
-
-                {/* Pending jobs */}
-                {pendingJobs.length>0 && (
-                  <div>
-                    <div style={{fontSize:11,color:"#555",letterSpacing:"0.08em",marginBottom:10}}>PENDING — REVIEW & ADD TO QUEUE</div>
-                    <div style={{display:"flex",flexDirection:"column",gap:10}}>
-                      {pendingJobs.map(job=>{
-                        const ranked     = rankPrinters(printers, job.colors, job.slicedForMultiTool, job.purgeWeightG);
-                        const recommended = ranked[0]?.printer||null;
-                        const selPrinter  = printers.find(p=>p.id===job.assignedPrinterId);
-                        return (
-                          <div key={job.id} className="card" style={{padding:"14px 16px",border:"1px solid #2a3a2a"}}>
-                            <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
-                              {job.imageUrl && <img src={job.imageUrl} alt="" style={{width:72,height:54,objectFit:"cover",borderRadius:5,border:"1px solid #2a2a3a",flexShrink:0}} />}
-                              <div style={{flex:1,minWidth:0}}>
-                                {/* Title */}
-                                <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:5}}>
-                                  <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:14,color:"#fff"}}>{job.partName}</span>
-                                  <span className="chip" style={{background:job.slicedForMultiTool?"#2a1a3d":"#1a2a1a",color:job.slicedForMultiTool?"#c084fc":"#4ade80",border:`1px solid ${job.slicedForMultiTool?"#c084fc44":"#4ade8044"}`}}>
-                                    {job.slicedForMultiTool?"🔧 MULTI":"🖨️ SINGLE"}
-                                  </span>
-                                  {job.highPurge && selPrinter && !selPrinter.hasToolChanger &&
-                                    <span className="chip" style={{background:"#3d2a0a",color:"#fbbf24",border:"1px solid #fbbf2444"}}>⚠ {job.purgeWeightG}g PURGE</span>}
-                                </div>
-                                {/* Stats */}
-                                <div style={{display:"flex",gap:12,fontSize:11,color:"#666",flexWrap:"wrap",marginBottom:10}}>
-                                  <span>🕐 {job.printTime}</span>
-                                  {job.totalGrams!=null   && <span>🧵 {job.totalGrams}g</span>}
-                                  {job.purgeWeightG!=null && <span style={{color:job.highPurge?"#fbbf24":"#666"}}>🗑 {job.purgeWeightG}g purge{job.highPurge?" ⚠":""}</span>}
-                                  <span style={{color:"#444"}}>{job.addedAt}</span>
-                                </div>
-                                {/* Filament slots */}
-                                <div style={{marginBottom:12}}>
-                                  <div style={{fontSize:10,color:"#555",marginBottom:6,letterSpacing:"0.05em"}}>FILAMENTS <span style={{color:"#333",fontWeight:400}}>(click slot to set brand/name)</span></div>
-                                  <FilamentSlotEditor job={job} />
-                                </div>
-                                {/* Printer Picker */}
-                                <div style={{marginBottom:12}}>
-                                  <div style={{fontSize:10,color:"#555",marginBottom:6,letterSpacing:"0.05em"}}>SELECT PRINTER</div>
-                                  {recommended && (
-                                    <div style={{fontSize:11,color:"#2aff6e",marginBottom:6}}>
-                                      ★ Recommended: <strong>{recommended.name}</strong>
-                                      {ranked[0]?.perfectMatch && <span className="chip" style={{background:"#0a2a1a",color:"#34d399",border:"1px solid #34d39944",marginLeft:6}}>✓ ALL COLORS LOADED</span>}
-                                    </div>
-                                  )}
-                                  <div style={{display:"flex",flexDirection:"column",gap:4}}>
-                                    {ranked.map((r,ri)=>{
-                                      const isSel = job.assignedPrinterId===r.printer.id;
-                                      const isRec = recommended?.id===r.printer.id;
-                                      return (
-                                        <div key={r.printer.id} onClick={()=>selectPrinterForJob(job.id, r.printer.id)}
-                                          style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",borderRadius:6,border:`1px solid ${isSel?"#2aff6e":"#1e1e2e"}`,background:isSel?"#0d2a1a":"#0d0d15",cursor:"pointer"}}>
-                                          <div style={{width:13,height:13,borderRadius:"50%",border:`2px solid ${isSel?"#2aff6e":"#333"}`,background:isSel?"#2aff6e":"transparent",flexShrink:0}} />
-                                          <span style={{fontSize:12,color:isSel?"#fff":"#aaa",flex:1}}>
-                                            {isRec?"★ ":`${ri+1}. `}{r.printer.name}{r.printer.hasToolChanger?" 🔧":""}
-                                          </span>
-                                          <div style={{display:"flex",gap:3}}>
-                                            {r.printer.loadedColors.map((lc,li)=>{
-                                              const match = job.colors.some(jc=>colorDistance(jc,lc)<80);
-                                              return <div key={li} style={{width:10,height:10,borderRadius:2,background:lc,border:`1px solid ${match?"#2aff6e88":"#ffffff11"}`,boxShadow:match?"0 0 4px #2aff6e44":"none"}} />;
-                                            })}
-                                          </div>
-                                          <span style={{fontSize:10,color:"#555"}}>{r.matchedColors}/{job.colors.length} match</span>
-                                          {r.perfectMatch && <span style={{fontSize:10,color:"#34d399"}}>✓</span>}
-                                          <span style={{fontSize:10,color:r.printer.status==="idle"?"#555":"#ffaa2a"}}>{r.printer.status}</span>
-                                        </div>
-                                      );
-                                    })}
-                                    {ranked.length===0 && <div style={{fontSize:12,color:"#555",fontStyle:"italic"}}>No compatible printers found</div>}
-                                  </div>
-                                </div>
-                                <div style={{display:"flex",gap:8}}>
-                                  <button className="btn btn-green" style={{opacity:job.assignedPrinterId?1:0.4,cursor:job.assignedPrinterId?"pointer":"not-allowed"}}
-                                    onClick={()=>job.assignedPrinterId&&addJobToQueue(job.id)}>+ Add to Queue</button>
-                                  <button className="btn btn-red" style={{marginLeft:"auto"}} onClick={()=>removeJob(job.id)}>Discard</button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+              {/* Stats */}
+              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(140px,1fr))",gap:10}}>
+                {[
+                  {label:"PRINTING",   value:Object.keys(activeTimers).length,                      color:"#22c55e", bg:"#052e16"},
+                  {label:"IDLE",       value:printers.filter(p=>!activeTimers[p.id]).length,         color:"#64748b", bg:"#0f172a"},
+                  {label:"IN QUEUE",   value:queuedJobs.length,                                      color:"#3b82f6", bg:"#0f1e36"},
+                  {label:"PENDING",    value:pendingJobs.length,                                     color:"#f59e0b", bg:"#1c1003"},
+                  {label:"COMPLETED",  value:doneJobs.length,                                        color:"#10b981", bg:"#022c22"},
+                ].map(s=>(
+                  <div key={s.label} style={{background:s.bg,border:`1px solid ${s.color}22`,borderRadius:10,padding:"16px 14px",textAlign:"center"}}>
+                    <div style={{fontSize:32,fontWeight:700,color:s.color,fontFamily:"'Space Grotesk',sans-serif",lineHeight:1}}>{s.value}</div>
+                    <div style={{fontSize:10,color:s.color+"88",letterSpacing:"0.1em",marginTop:6}}>{s.label}</div>
                   </div>
-                )}
+                ))}
+              </div>
 
-                {/* Queued jobs */}
-                {queuedJobs.length>0 && (()=>{
-                  const unassigned = queuedJobs.filter(j=>!j.assignedPrinterId);
-                  const assigned   = queuedJobs.filter(j=> j.assignedPrinterId);
-                  const JobCard = ({job, showUnqueue}) => {
-                    const printer   = printers.find(p=>p.id===job.assignedPrinterId);
-                    const isEditing = editingJob===job.id;
-                    const filaments = job.filaments || job.colors.map(c=>({color:c,colorName:"",material:"PLA",brand:"Bambu Lab"}));
+              {/* Printer grid */}
+              <div>
+                <div style={{fontSize:11,color:"#2a3a5a",letterSpacing:"0.1em",marginBottom:12,fontWeight:600}}>FARM STATUS</div>
+                <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12}}>
+                  {printers.map(printer=>{
+                    const timer       = activeTimers[printer.id];
+                    const printerJobs = jobs.filter(j=>printer.queue.includes(j.id));
+                    const activeJob   = timer ? jobs.find(j=>j.id===timer.jobId) : printerJobs[0];
+                    const elapsed     = timer ? (now-timer.startedAt)/1000 : 0;
+                    const remaining   = timer ? timer.durationSecs-elapsed : null;
+                    const isDone      = timer && remaining<=0;
+                    const pct         = timer&&!isDone ? Math.min(100,Math.round(elapsed/timer.durationSecs*100)) : isDone?100:0;
+                    const headerBg    = isDone?"#065f46":timer?"#14532d":"#0f1e36";
+                    const accentColor = isDone?"#10b981":timer?"#22c55e":"#334155";
+                    const badgeColor  = isDone?"#10b981":timer?"#22c55e":"#64748b";
+                    const statusLabel = isDone?"DONE ✓":timer?"PRINTING":"IDLE";
                     return (
-                      <div className="card" style={{padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
-                        {job.imageUrl && <img src={job.imageUrl} alt="" style={{width:56,height:42,objectFit:"cover",borderRadius:4,border:"1px solid #2a2a3a",flexShrink:0}} />}
-                        <div style={{flex:1,minWidth:0}}>
-                          {isEditing ? (
-                            <input value={job.partName} onChange={e=>updateJobField(job.id,"partName",e.target.value)}
-                              style={{width:"100%",background:"#0d0d15",border:"1px solid #2aff6e44",borderRadius:4,padding:"4px 8px",color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,outline:"none",marginBottom:6}} />
-                          ) : (
-                            <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:3}}>
-                              <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:"#fff"}}>{job.partName}</span>
-                              {printer && <span style={{fontSize:11,color:"#2aff6e"}}>→ {printer.name}</span>}
-                              {job.highPurge && printer && !printer.hasToolChanger &&
-                                <span className="chip" style={{background:"#3d2a0a",color:"#fbbf24",border:"1px solid #fbbf2444"}}>⚠ {job.purgeWeightG}g PURGE</span>}
+                      <div key={printer.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${accentColor}33`,cursor:"pointer",transition:"border-color 0.2s"}}
+                        onClick={()=>setActiveTab("printers")}
+                        onMouseEnter={e=>e.currentTarget.style.borderColor=accentColor+"88"}
+                        onMouseLeave={e=>e.currentTarget.style.borderColor=accentColor+"33"}>
+                        {/* Colored header */}
+                        <div style={{background:headerBg,padding:"12px 14px",display:"flex",alignItems:"center",justifyContent:"space-between"}}>
+                          <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:14,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{printer.name}</span>
+                          <span style={{background:"#00000033",color:badgeColor,border:`1px solid ${badgeColor}55`,borderRadius:20,fontSize:10,fontWeight:700,padding:"3px 10px",fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.05em",flexShrink:0,animation:timer&&!isDone?"pulse 2s infinite":"none"}}>
+                            ● {statusLabel}
+                          </span>
+                        </div>
+                        {/* Body */}
+                        <div style={{background:"#0d1424",padding:"12px 14px"}}>
+                          {activeJob ? (<>
+                            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                              <div style={{fontSize:12,color:"#e2e8f0",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",flex:1,marginRight:8}}>{activeJob.partName}</div>
+                              {printerJobs.length>0 && <span style={{fontSize:10,color:"#334155",flexShrink:0}}>{printerJobs.indexOf(activeJob)+1} of {printerJobs.length}</span>}
                             </div>
-                          )}
-                          <div style={{display:"flex",gap:10,fontSize:11,color:"#555",flexWrap:"wrap",marginBottom:6}}>
-                            {isEditing
-                              ? <input value={job.printTime} onChange={e=>updateJobField(job.id,"printTime",e.target.value)}
-                                  style={{background:"#0d0d15",border:"1px solid #333",borderRadius:3,padding:"2px 6px",color:"#aaa",fontFamily:"inherit",fontSize:11,outline:"none",width:80}} />
-                              : <span>🕐 {job.printTime}</span>}
-                            {job.totalGrams!=null && <span>🧵 {job.totalGrams}g</span>}
-                            {job.purgeWeightG!=null && <span style={{color:job.highPurge?"#fbbf24":"#555"}}>🗑 {job.purgeWeightG}g purge</span>}
-                          </div>
-                          <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:8}}>
-                            {filaments.map((f,i)=>(
-                              <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:"#0d0d15",border:"1px solid #1e1e2e",borderRadius:5,padding:"3px 7px"}}>
-                                <div style={{width:10,height:10,borderRadius:2,background:f.color,border:"1px solid #ffffff22"}} />
-                                <span style={{fontSize:10,color:"#888"}}>{f.colorName||f.color}</span>
+                            {timer && !isDone && (<>
+                              <div style={{height:4,background:"#1e293b",borderRadius:2,overflow:"hidden",marginBottom:5}}>
+                                <div style={{height:"100%",width:`${pct}%`,background:"#22c55e",borderRadius:2}} />
                               </div>
-                            ))}
-                          </div>
-                          <div style={{display:"flex",gap:8}}>
-                            <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>setEditingJob(isEditing?null:job.id)}>
-                              {isEditing?"Save":"Edit"}
-                            </button>
-                            <button className="btn btn-green" style={{fontSize:11}} onClick={()=>completeJob(job.id)}>✓ Complete</button>
-                            {showUnqueue && <button className="btn btn-gray" style={{fontSize:11,marginLeft:"auto"}} onClick={()=>unqueueJob(job.id)}>↩ Unqueue</button>}
-                          </div>
+                              <div style={{fontSize:11,color:"#22c55e",fontWeight:600,marginBottom:8}}>{pct}% · {formatCountdown(remaining)}</div>
+                            </>)}
+                            {isDone && <div style={{fontSize:11,color:"#10b981",fontWeight:600,marginBottom:8}}>✓ Print complete</div>}
+                            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+                              {(activeJob.filaments||activeJob.colors.map(c=>({color:c,colorName:""}))).slice(0,5).map((f,i)=>(
+                                <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:"#1e293b",border:"1px solid #334155",borderRadius:5,padding:"3px 7px"}}>
+                                  <div style={{width:8,height:8,borderRadius:2,background:f.color,flexShrink:0}} />
+                                  {f.colorName && <span style={{fontSize:10,color:"#64748b"}}>{f.colorName}</span>}
+                                </div>
+                              ))}
+                              {activeJob.printTime&&activeJob.printTime!=="Unknown" && (
+                                <div style={{display:"flex",alignItems:"center",background:"#1e293b",border:"1px solid #334155",borderRadius:5,padding:"3px 7px"}}>
+                                  <span style={{fontSize:10,color:"#334155"}}>🕐 {activeJob.printTime}</span>
+                                </div>
+                              )}
+                            </div>
+                            <div style={{display:"flex",gap:6}} onClick={e=>e.stopPropagation()}>
+                              {isDone ? (
+                                <button className="btn btn-green" style={{flex:1,fontSize:11}} onClick={()=>{completeJob(timer.jobId);stopTimer(printer.id);}}>✓ Mark Complete</button>
+                              ) : timer ? (
+                                <button className="btn btn-red" style={{fontSize:11}} onClick={()=>stopTimer(printer.id)}>■ Stop</button>
+                              ) : (
+                                <button className="btn btn-green" style={{fontSize:11}} onClick={()=>startTimer(printer.id,activeJob)}>▶ Start Timer</button>
+                              )}
+                            </div>
+                          </>) : (
+                            <div style={{fontSize:12,color:"#1e293b",fontStyle:"italic",padding:"8px 0"}}>No jobs queued</div>
+                          )}
+                          {printerJobs.length>1 && (
+                            <div style={{fontSize:10,color:"#1e293b",marginTop:8,paddingTop:8,borderTop:"1px solid #1a2540"}}>+{printerJobs.length-1} more in queue</div>
+                          )}
                         </div>
                       </div>
                     );
-                  };
+                  })}
+                </div>
+              </div>
 
-                  return (
-                    <div>
-                      <div style={{fontSize:11,color:"#555",letterSpacing:"0.08em",marginBottom:10}}>QUEUED — IN PRINTER QUEUES</div>
-                      {unassigned.length>0 && (
-                        <div style={{marginBottom:14}}>
-                          <div style={{fontSize:10,color:"#444",letterSpacing:"0.06em",marginBottom:6}}>UNASSIGNED</div>
-                          <div style={{display:"flex",flexDirection:"column",gap:8}}>{unassigned.map(job=><JobCard key={job.id} job={job} showUnqueue />)}</div>
-                        </div>
-                      )}
-                      {printers.filter(p=>assigned.some(j=>j.assignedPrinterId===p.id)).map(printer=>(
-                        <div key={printer.id} style={{marginBottom:14}} onDragOver={e=>e.preventDefault()} onDrop={()=>dropOnPrinter(printer.id)}>
-                          <div style={{fontSize:10,color:"#444",letterSpacing:"0.06em",marginBottom:6}}>{printer.name.toUpperCase()}</div>
-                          <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                            {assigned.filter(j=>j.assignedPrinterId===printer.id).map(job=>(
-                              <div key={job.id} draggable onDragStart={()=>dragStart(job.id,printer.id)}>
-                                <JobCard job={job} showUnqueue />
-                              </div>
-                            ))}
+              {/* Finish times */}
+              {Object.keys(activeTimers).length>0 && (
+                <div>
+                  <div style={{fontSize:11,color:"#2a3a5a",letterSpacing:"0.1em",marginBottom:12,fontWeight:600}}>ESTIMATED FINISH TIMES</div>
+                  <div style={{background:"#0d1424",border:"1px solid #1a2540",borderRadius:10,overflow:"hidden"}}>
+                    {Object.entries(activeTimers)
+                      .map(([pid,timer])=>{
+                        const printer=printers.find(p=>p.id===parseInt(pid));
+                        const job=jobs.find(j=>j.id===timer.jobId);
+                        const elapsed=(now-timer.startedAt)/1000;
+                        const remaining=timer.durationSecs-elapsed;
+                        const isDone=remaining<=0;
+                        return {printer,job,remaining,isDone,finishTs:timer.startedAt+timer.durationSecs*1000,pid,timer};
+                      })
+                      .sort((a,b)=>a.finishTs-b.finishTs)
+                      .map(({printer,job,remaining,isDone,timer},i)=>(
+                        <div key={i} style={{display:"flex",alignItems:"center",gap:14,padding:"12px 16px",borderBottom:"1px solid #1a2540"}}>
+                          <div style={{width:8,height:8,borderRadius:"50%",background:isDone?"#10b981":"#22c55e",flexShrink:0,animation:"pulse 2s infinite"}} />
+                          <div style={{flex:1,minWidth:0}}>
+                            <div style={{fontSize:13,color:"#e2e8f0",fontWeight:600}}>{printer?.name}</div>
+                            <div style={{fontSize:11,color:"#334155",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job?.partName}</div>
+                          </div>
+                          <div style={{textAlign:"right",flexShrink:0}}>
+                            {isDone ? (
+                              <div style={{fontSize:12,color:"#10b981",fontWeight:600}}>✓ Done</div>
+                            ) : (<>
+                              <div style={{fontSize:13,color:"#22c55e",fontWeight:600}}>{formatCountdown(remaining)}</div>
+                              <div style={{fontSize:10,color:"#334155"}}>{formatFinishTime(timer.startedAt,timer.durationSecs)}</div>
+                            </>)}
                           </div>
                         </div>
                       ))}
-                    </div>
-                  );
-                })()}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* ════════ PRINTERS TAB ════════ */}
-        {activeTab==="printers" && (
-          <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {printers.length===0 ? (
-              <div style={{textAlign:"center",padding:"48px 0",color:"#444"}}>
-                <div style={{fontSize:13}}>No printers yet. Click "+ Add" to get started.</div>
-              </div>
-            ) : printers.map(printer=>{
-              const timer       = activeTimers[printer.id];
-              const printerJobs = jobs.filter(j=>printer.queue.includes(j.id));
-              const activeJob   = timer ? jobs.find(j=>j.id===timer.jobId) : printerJobs[0];
-              const elapsed     = timer ? (now-timer.startedAt)/1000 : 0;
-              const remaining   = timer ? timer.durationSecs-elapsed : null;
-              const isDone      = timer && remaining<=0;
-              const pct         = timer&&!isDone ? Math.min(100,Math.round(elapsed/timer.durationSecs*100)) : isDone?100:0;
-              return (
-                <div key={printer.id} className="card printer-card" style={{padding:"16px"}}
-                  onDragOver={e=>e.preventDefault()} onDrop={()=>dropOnPrinter(printer.id)}>
-                  <div style={{display:"flex",alignItems:"flex-start",gap:10,marginBottom:12}}>
-                    <div style={{flex:1}}>
-                      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:15,color:"#fff"}}>{printer.name}</div>
-                      <div style={{fontSize:11,color:"#555",marginTop:2}}>{printer.hasToolChanger?"🔧 Multi-Tool":"🖨️ Single Tool"} · {printer.maxColors} slot{printer.maxColors!==1?"s":""}</div>
-                    </div>
-                    <div style={{display:"flex",gap:3,alignItems:"center",flexWrap:"wrap",maxWidth:160}}>
-                      {printer.loadedColors.map((c,i)=>(
-                        <div key={i} title={printer.colorNames[i]||`Slot ${i+1}`} style={{width:16,height:16,borderRadius:3,background:c,border:"1px solid #ffffff22"}} />
-                      ))}
-                    </div>
-                    <div style={{display:"flex",gap:6,flexShrink:0}}>
-                      <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>setEditingPrinter({...printer,loadedColors:[...printer.loadedColors],colorNames:[...printer.colorNames]})}>Edit</button>
-                      <button className="btn btn-red"  style={{fontSize:11}} onClick={()=>setConfirmDelete(printer.id)}>Remove</button>
-                    </div>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
 
-                  {timer && activeJob && (
-                    <div style={{background:"#0a0a12",border:"1px solid #1e2e3e",borderRadius:6,padding:"10px 12px",marginBottom:12}}>
-                      <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:4}}>
-                        <div style={{width:8,height:8,borderRadius:"50%",background:isDone?"#2aff6e":"#00b8ff",flexShrink:0,animation:"pulse 2s infinite"}} />
-                        <span style={{fontSize:12,color:"#fff",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeJob.partName}</span>
-                        {isDone
-                          ? <span style={{fontSize:11,color:"#2aff6e"}}>✓ Done!</span>
-                          : <span style={{fontSize:12,color:"#00b8ff",fontWeight:600}}>{formatCountdown(remaining)}</span>}
-                      </div>
-                      {!isDone && (<>
-                        <div style={{height:3,background:"#1e1e2e",borderRadius:2,overflow:"hidden",marginBottom:6}}>
-                          <div style={{height:"100%",width:`${pct}%`,background:"#00b8ff",borderRadius:2}} />
-                        </div>
-                        <div style={{fontSize:10,color:"#555",marginBottom:6}}>🏁 {formatFinishTime(timer.startedAt,timer.durationSecs)}</div>
-                      </>)}
-                      <div style={{display:"flex",gap:6}}>
-                        {isDone ? (
-                          <button className="btn btn-green" style={{fontSize:11}} onClick={()=>{completeJob(timer.jobId);stopTimer(printer.id);}}>✓ Mark Complete</button>
-                        ) : (
-                          <button className="btn btn-red" style={{fontSize:11}} onClick={()=>stopTimer(printer.id)}>■ Stop Timer</button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  <div>
-                    <div style={{fontSize:10,color:"#555",letterSpacing:"0.07em",marginBottom:8}}>QUEUE ({printerJobs.length})</div>
-                    {printerJobs.length===0 ? (
-                      <div style={{fontSize:11,color:"#333",fontStyle:"italic",padding:"10px 0",textAlign:"center",border:"1px dashed #1e1e2e",borderRadius:6}}>Empty — drag jobs here</div>
-                    ) : (
-                      <div style={{display:"flex",flexDirection:"column",gap:6}}>
-                        {printerJobs.map((job,idx)=>{
-                          const isActive = timer?.jobId===job.id;
+          {/* QUEUE */}
+          {activeTab==="queue" && (
+            <div>
+              {allJobs.length===0 ? (
+                <div style={{textAlign:"center",padding:"64px 0",color:"#1e293b"}}>
+                  <div style={{fontSize:40,marginBottom:12}}>🖨️</div>
+                  <div style={{fontSize:14,color:"#334155"}}>No jobs yet — drop a slicer screenshot above to start.</div>
+                </div>
+              ) : (
+                <div style={{display:"flex",flexDirection:"column",gap:20}}>
+                  {pendingJobs.length>0 && (
+                    <div>
+                      <div style={{fontSize:11,color:"#2a3a5a",letterSpacing:"0.1em",marginBottom:12,fontWeight:600}}>PENDING — REVIEW & ASSIGN</div>
+                      <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                        {pendingJobs.map(job=>{
+                          const ranked=rankPrinters(printers,job.colors,job.slicedForMultiTool,job.purgeWeightG);
+                          const recommended=ranked[0]?.printer||null;
+                          const selPrinter=printers.find(p=>p.id===job.assignedPrinterId);
                           return (
-                            <div key={job.id} draggable onDragStart={()=>dragStart(job.id,printer.id)}
-                              style={{display:"flex",alignItems:"center",gap:8,padding:"8px 10px",background:"#0d0d15",borderRadius:6,border:`1px solid ${isActive?"#00b8ff33":"#1e1e2e"}`,cursor:"grab",userSelect:"none"}}>
-                              <span style={{fontSize:10,color:"#333",width:14,flexShrink:0}}>{idx+1}</span>
-                              <div style={{display:"flex",gap:3,flexShrink:0}}>
-                                {job.colors.map((c,ci)=><div key={ci} style={{width:10,height:10,borderRadius:2,background:c,border:"1px solid #ffffff22"}} />)}
+                            <div key={job.id} style={{background:"#0d1424",border:"1px solid #1a2540",borderRadius:10,padding:"16px"}}>
+                              <div style={{display:"flex",gap:12,alignItems:"flex-start"}}>
+                                {job.imageUrl && <img src={job.imageUrl} alt="" style={{width:80,height:60,objectFit:"cover",borderRadius:6,border:"1px solid #1a2540",flexShrink:0}} />}
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap",marginBottom:6}}>
+                                    <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:15,color:"#fff"}}>{job.partName}</span>
+                                    <span style={{background:job.slicedForMultiTool?"#1e1040":"#0a2010",color:job.slicedForMultiTool?"#a78bfa":"#4ade80",border:`1px solid ${job.slicedForMultiTool?"#a78bfa33":"#4ade8033"}`,borderRadius:20,fontSize:10,fontWeight:700,padding:"2px 9px"}}>
+                                      {job.slicedForMultiTool?"🔧 MULTI":"🖨️ SINGLE"}
+                                    </span>
+                                    {job.highPurge&&selPrinter&&!selPrinter.hasToolChanger && (
+                                      <span style={{background:"#1c0f00",color:"#f59e0b",border:"1px solid #f59e0b33",borderRadius:20,fontSize:10,fontWeight:700,padding:"2px 9px"}}>⚠ {job.purgeWeightG}g PURGE</span>
+                                    )}
+                                  </div>
+                                  <div style={{display:"flex",gap:12,fontSize:11,color:"#334155",flexWrap:"wrap",marginBottom:12}}>
+                                    <span>🕐 {job.printTime}</span>
+                                    {job.totalGrams!=null && <span>🧵 {job.totalGrams}g</span>}
+                                    {job.purgeWeightG!=null && <span style={{color:job.highPurge?"#f59e0b":"#334155"}}>🗑 {job.purgeWeightG}g purge</span>}
+                                  </div>
+                                  <div style={{marginBottom:12}}>
+                                    <div style={{fontSize:10,color:"#2a3a5a",marginBottom:6,letterSpacing:"0.07em"}}>FILAMENTS <span style={{color:"#1a2540",fontWeight:400}}>(click to label)</span></div>
+                                    <FilamentSlotEditor job={job} />
+                                  </div>
+                                  <div style={{marginBottom:14}}>
+                                    <div style={{fontSize:10,color:"#2a3a5a",marginBottom:8,letterSpacing:"0.07em"}}>
+                                      SELECT PRINTER
+                                      {recommended && <span style={{color:"#22c55e",marginLeft:8}}>★ {recommended.name} recommended</span>}
+                                    </div>
+                                    <div style={{display:"flex",flexDirection:"column",gap:4}}>
+                                      {ranked.map((r,ri)=>{
+                                        const isSel=job.assignedPrinterId===r.printer.id;
+                                        const isRec=recommended?.id===r.printer.id;
+                                        return (
+                                          <div key={r.printer.id} onClick={()=>selectPrinterForJob(job.id,r.printer.id)}
+                                            style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",borderRadius:8,border:`1px solid ${isSel?"#22c55e":"#1a2540"}`,background:isSel?"#052e16":"#0a0f1e",cursor:"pointer",transition:"all 0.15s"}}>
+                                            <div style={{width:12,height:12,borderRadius:"50%",border:`2px solid ${isSel?"#22c55e":"#334155"}`,background:isSel?"#22c55e":"transparent",flexShrink:0}} />
+                                            <span style={{fontSize:12,color:isSel?"#fff":"#64748b",flex:1}}>
+                                              {isRec?"★ ":`${ri+1}. `}{r.printer.name}{r.printer.hasToolChanger?" 🔧":""}
+                                            </span>
+                                            <div style={{display:"flex",gap:3}}>
+                                              {r.printer.loadedColors.map((lc,li)=>{
+                                                const match=job.colors.some(jc=>colorDistance(jc,lc)<80);
+                                                return <div key={li} style={{width:10,height:10,borderRadius:2,background:lc,border:`1px solid ${match?"#22c55e88":"#ffffff11"}`,boxShadow:match?"0 0 4px #22c55e44":"none"}} />;
+                                              })}
+                                            </div>
+                                            <span style={{fontSize:10,color:"#334155"}}>{r.matchedColors}/{job.colors.length}</span>
+                                            {r.perfectMatch && <span style={{fontSize:10,color:"#22c55e"}}>✓</span>}
+                                          </div>
+                                        );
+                                      })}
+                                      {ranked.length===0 && <div style={{fontSize:12,color:"#334155",fontStyle:"italic"}}>No compatible printers</div>}
+                                    </div>
+                                  </div>
+                                  <div style={{display:"flex",gap:8}}>
+                                    <button className="btn btn-green" style={{opacity:job.assignedPrinterId?1:0.4,cursor:job.assignedPrinterId?"pointer":"not-allowed"}}
+                                      onClick={()=>job.assignedPrinterId&&addJobToQueue(job.id)}>+ Add to Queue</button>
+                                    <button className="btn btn-red" style={{marginLeft:"auto"}} onClick={()=>removeJob(job.id)}>Discard</button>
+                                  </div>
+                                </div>
                               </div>
-                              <div style={{flex:1,minWidth:0}}>
-                                <div style={{fontSize:12,color:"#ccc",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job.partName}</div>
-                                <div style={{fontSize:10,color:"#444"}}>🕐 {job.printTime}</div>
-                              </div>
-                              {!timer && idx===0 && (
-                                <button className="btn btn-green" style={{fontSize:10,padding:"3px 8px"}} onClick={()=>startTimer(printer.id,job)}>▶ Start</button>
-                              )}
-                              <button className="btn btn-gray" style={{fontSize:10,padding:"3px 6px"}} onClick={()=>unqueueJob(job.id)} title="Remove from queue">↩</button>
                             </div>
                           );
                         })}
                       </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                    </div>
+                  )}
 
-        {/* ════════ COMPLETED TAB ════════ */}
-        {activeTab==="completed" && (
-          <div>
-            {doneJobs.length===0 ? (
-              <div style={{textAlign:"center",padding:"48px 0",color:"#444"}}>
-                <div style={{fontSize:36,marginBottom:10}}>✓</div>
-                <div style={{fontSize:13}}>No completed jobs yet.</div>
-              </div>
-            ) : (
-              <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                {[...doneJobs].reverse().map(job=>(
-                  <div key={job.id} className="card" style={{padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
-                    {job.imageUrl && <img src={job.imageUrl} alt="" style={{width:48,height:36,objectFit:"cover",borderRadius:4,border:"1px solid #2a2a3a",flexShrink:0}} />}
-                    <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:"#888",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job.partName}</div>
-                      <div style={{display:"flex",gap:8,fontSize:11,color:"#444",marginTop:2,flexWrap:"wrap"}}>
-                        <span>🕐 {job.printTime}</span>
-                        {job.totalGrams!=null && <span>🧵 {job.totalGrams}g</span>}
+                  {queuedJobs.length>0 && (()=>{
+                    const unassigned=queuedJobs.filter(j=>!j.assignedPrinterId);
+                    const assigned=queuedJobs.filter(j=>j.assignedPrinterId);
+                    const JobCard=({job,showUnqueue})=>{
+                      const printer=printers.find(p=>p.id===job.assignedPrinterId);
+                      const isEditing=editingJob===job.id;
+                      const filaments=job.filaments||job.colors.map(c=>({color:c,colorName:"",material:"PLA",brand:"Bambu Lab"}));
+                      return (
+                        <div style={{background:"#0d1424",border:"1px solid #1a2540",borderRadius:8,padding:"12px 14px",display:"flex",gap:12,alignItems:"flex-start"}}>
+                          {job.imageUrl && <img src={job.imageUrl} alt="" style={{width:56,height:42,objectFit:"cover",borderRadius:5,border:"1px solid #1a2540",flexShrink:0}} />}
+                          <div style={{flex:1,minWidth:0}}>
+                            {isEditing ? (
+                              <input value={job.partName} onChange={e=>updateJobField(job.id,"partName",e.target.value)}
+                                style={{width:"100%",background:"#0a0f1e",border:"1px solid #22c55e44",borderRadius:6,padding:"4px 8px",color:"#fff",fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,outline:"none",marginBottom:6}} />
+                            ) : (
+                              <div style={{display:"flex",alignItems:"center",gap:6,flexWrap:"wrap",marginBottom:4}}>
+                                <span style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:"#fff"}}>{job.partName}</span>
+                                {printer && <span style={{fontSize:11,color:"#22c55e"}}>→ {printer.name}</span>}
+                              </div>
+                            )}
+                            <div style={{display:"flex",gap:10,fontSize:11,color:"#334155",flexWrap:"wrap",marginBottom:8}}>
+                              {isEditing
+                                ? <input value={job.printTime} onChange={e=>updateJobField(job.id,"printTime",e.target.value)}
+                                    style={{background:"#0a0f1e",border:"1px solid #1a2540",borderRadius:4,padding:"2px 6px",color:"#64748b",fontFamily:"inherit",fontSize:11,outline:"none",width:80}} />
+                                : <span>🕐 {job.printTime}</span>}
+                              {job.totalGrams!=null && <span>🧵 {job.totalGrams}g</span>}
+                              {job.purgeWeightG!=null && <span style={{color:job.highPurge?"#f59e0b":"#334155"}}>🗑 {job.purgeWeightG}g</span>}
+                            </div>
+                            <div style={{display:"flex",gap:4,flexWrap:"wrap",marginBottom:10}}>
+                              {filaments.map((f,i)=>(
+                                <div key={i} style={{display:"flex",alignItems:"center",gap:4,background:"#0a0f1e",border:"1px solid #1a2540",borderRadius:5,padding:"3px 7px"}}>
+                                  <div style={{width:8,height:8,borderRadius:2,background:f.color}} />
+                                  <span style={{fontSize:10,color:"#334155"}}>{f.colorName||f.color}</span>
+                                </div>
+                              ))}
+                            </div>
+                            <div style={{display:"flex",gap:6}}>
+                              <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>setEditingJob(isEditing?null:job.id)}>{isEditing?"Save":"Edit"}</button>
+                              <button className="btn btn-green" style={{fontSize:11}} onClick={()=>completeJob(job.id)}>✓ Complete</button>
+                              {showUnqueue && <button className="btn btn-gray" style={{fontSize:11,marginLeft:"auto"}} onClick={()=>unqueueJob(job.id)}>↩ Unqueue</button>}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    };
+                    return (
+                      <div>
+                        <div style={{fontSize:11,color:"#2a3a5a",letterSpacing:"0.1em",marginBottom:12,fontWeight:600}}>QUEUED — IN PRINTER QUEUES</div>
+                        {unassigned.length>0 && (
+                          <div style={{marginBottom:16}}>
+                            <div style={{fontSize:10,color:"#1e293b",letterSpacing:"0.07em",marginBottom:6}}>UNASSIGNED</div>
+                            <div style={{display:"flex",flexDirection:"column",gap:8}}>{unassigned.map(job=><JobCard key={job.id} job={job} showUnqueue />)}</div>
+                          </div>
+                        )}
+                        {printers.filter(p=>assigned.some(j=>j.assignedPrinterId===p.id)).map(printer=>(
+                          <div key={printer.id} style={{marginBottom:16}} onDragOver={e=>e.preventDefault()} onDrop={()=>dropOnPrinter(printer.id)}>
+                            <div style={{fontSize:10,color:"#1e293b",letterSpacing:"0.07em",marginBottom:6}}>{printer.name.toUpperCase()}</div>
+                            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                              {assigned.filter(j=>j.assignedPrinterId===printer.id).map(job=>(
+                                <div key={job.id} draggable onDragStart={()=>dragStart(job.id,printer.id)}><JobCard job={job} showUnqueue /></div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* PRINTERS */}
+          {activeTab==="printers" && (
+            <div style={{display:"flex",flexDirection:"column",gap:12}}>
+              {printers.length===0 ? (
+                <div style={{textAlign:"center",padding:"64px 0",color:"#1e293b"}}>
+                  <div style={{fontSize:14,color:"#334155"}}>No printers yet — click "+ Add Printer" in the sidebar.</div>
+                </div>
+              ) : printers.map(printer=>{
+                const timer=activeTimers[printer.id];
+                const printerJobs=jobs.filter(j=>printer.queue.includes(j.id));
+                const activeJob=timer?jobs.find(j=>j.id===timer.jobId):printerJobs[0];
+                const elapsed=timer?(now-timer.startedAt)/1000:0;
+                const remaining=timer?timer.durationSecs-elapsed:null;
+                const isDone=timer&&remaining<=0;
+                const pct=timer&&!isDone?Math.min(100,Math.round(elapsed/timer.durationSecs*100)):isDone?100:0;
+                const headerBg=isDone?"#065f46":timer?"#14532d":"#0f1e36";
+                const accentColor=isDone?"#10b981":timer?"#22c55e":"#1e293b";
+                return (
+                  <div key={printer.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${accentColor}44`}}
+                    onDragOver={e=>e.preventDefault()} onDrop={()=>dropOnPrinter(printer.id)}>
+                    {/* Header */}
+                    <div style={{background:headerBg,padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
+                      <div style={{flex:1}}>
+                        <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:700,fontSize:15,color:"#fff"}}>{printer.name}</div>
+                        <div style={{fontSize:11,color:"#00000066",marginTop:2}}>{printer.hasToolChanger?"🔧 Multi-Tool":"🖨️ Single Tool"} · {printer.maxColors} slot{printer.maxColors!==1?"s":""}</div>
+                      </div>
+                      <div style={{display:"flex",gap:3,flexWrap:"wrap",maxWidth:120}}>
+                        {printer.loadedColors.map((c,i)=>(
+                          <div key={i} title={printer.colorNames[i]||`Slot ${i+1}`} style={{width:16,height:16,borderRadius:3,background:c,border:"1px solid #ffffff33"}} />
+                        ))}
+                      </div>
+                      <div style={{display:"flex",gap:6,flexShrink:0}}>
+                        <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>setEditingPrinter({...printer,loadedColors:[...printer.loadedColors],colorNames:[...printer.colorNames]})}>Edit</button>
+                        <button className="btn btn-red" style={{fontSize:11}} onClick={()=>setConfirmDelete(printer.id)}>Remove</button>
                       </div>
                     </div>
-                    <div style={{display:"flex",gap:3,flexShrink:0}}>
-                      {job.colors?.map((c,i)=><div key={i} style={{width:10,height:10,borderRadius:2,background:c,border:"1px solid #ffffff22"}} />)}
+                    {/* Body */}
+                    <div style={{background:"#0d1424",padding:"14px 16px"}}>
+                      {timer&&activeJob && (
+                        <div style={{background:"#0a0f1e",border:`1px solid ${isDone?"#10b98133":"#22c55e33"}`,borderRadius:8,padding:"10px 14px",marginBottom:14}}>
+                          <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:isDone?0:6}}>
+                            <div style={{width:8,height:8,borderRadius:"50%",background:isDone?"#10b981":"#22c55e",flexShrink:0,animation:"pulse 2s infinite"}} />
+                            <span style={{fontSize:13,color:"#fff",fontWeight:600,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{activeJob.partName}</span>
+                            {isDone ? <span style={{fontSize:11,color:"#10b981"}}>✓ Done!</span>
+                              : <span style={{fontSize:13,color:"#22c55e",fontWeight:600}}>{formatCountdown(remaining)}</span>}
+                          </div>
+                          {!isDone && (<>
+                            <div style={{height:4,background:"#1a2540",borderRadius:2,overflow:"hidden",marginBottom:6}}>
+                              <div style={{height:"100%",width:`${pct}%`,background:"#22c55e",borderRadius:2}} />
+                            </div>
+                            <div style={{fontSize:10,color:"#334155",marginBottom:8}}>🏁 {formatFinishTime(timer.startedAt,timer.durationSecs)}</div>
+                          </>)}
+                          <div style={{display:"flex",gap:6,marginTop:isDone?8:0}}>
+                            {isDone ? (
+                              <button className="btn btn-green" style={{fontSize:11}} onClick={()=>{completeJob(timer.jobId);stopTimer(printer.id);}}>✓ Mark Complete</button>
+                            ) : (
+                              <button className="btn btn-red" style={{fontSize:11}} onClick={()=>stopTimer(printer.id)}>■ Stop Timer</button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <div style={{fontSize:10,color:"#2a3a5a",letterSpacing:"0.07em",marginBottom:8}}>QUEUE ({printerJobs.length})</div>
+                      {printerJobs.length===0 ? (
+                        <div style={{fontSize:12,color:"#1e293b",fontStyle:"italic",padding:"12px",textAlign:"center",border:"1px dashed #1a2540",borderRadius:8}}>Empty — drag jobs here</div>
+                      ) : (
+                        <div style={{display:"flex",flexDirection:"column",gap:6}}>
+                          {printerJobs.map((job,idx)=>{
+                            const isActive=timer?.jobId===job.id;
+                            return (
+                              <div key={job.id} draggable onDragStart={()=>dragStart(job.id,printer.id)}
+                                style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"#0a0f1e",borderRadius:8,border:`1px solid ${isActive?"#22c55e33":"#1a2540"}`,cursor:"grab",userSelect:"none"}}>
+                                <span style={{fontSize:10,color:"#1e293b",width:14,flexShrink:0}}>{idx+1}</span>
+                                <div style={{display:"flex",gap:3,flexShrink:0}}>
+                                  {job.colors.map((c,ci)=><div key={ci} style={{width:10,height:10,borderRadius:2,background:c}} />)}
+                                </div>
+                                <div style={{flex:1,minWidth:0}}>
+                                  <div style={{fontSize:12,color:"#94a3b8",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job.partName}</div>
+                                  <div style={{fontSize:10,color:"#1e293b"}}>🕐 {job.printTime}</div>
+                                </div>
+                                {!timer&&idx===0 && (
+                                  <button className="btn btn-green" style={{fontSize:10,padding:"3px 8px"}} onClick={()=>startTimer(printer.id,job)}>▶ Start</button>
+                                )}
+                                <button className="btn btn-gray" style={{fontSize:10,padding:"3px 6px"}} onClick={()=>unqueueJob(job.id)} title="Remove from queue">↩</button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                    <span style={{fontSize:10,color:"#2aff6e44",flexShrink:0}}>✓</span>
-                    <button className="btn btn-gray" style={{fontSize:10,padding:"3px 8px"}} onClick={()=>removeJob(job.id)}>×</button>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
 
+          {/* COMPLETED */}
+          {activeTab==="completed" && (
+            <div>
+              {doneJobs.length===0 ? (
+                <div style={{textAlign:"center",padding:"64px 0"}}>
+                  <div style={{fontSize:40,marginBottom:12}}>✓</div>
+                  <div style={{fontSize:14,color:"#334155"}}>No completed jobs yet.</div>
+                </div>
+              ) : (
+                <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                  {[...doneJobs].reverse().map(job=>(
+                    <div key={job.id} style={{background:"#0d1424",border:"1px solid #1a2540",borderRadius:8,padding:"12px 14px",display:"flex",gap:12,alignItems:"center"}}>
+                      {job.imageUrl && <img src={job.imageUrl} alt="" style={{width:48,height:36,objectFit:"cover",borderRadius:5,border:"1px solid #1a2540",flexShrink:0}} />}
+                      <div style={{flex:1,minWidth:0}}>
+                        <div style={{fontFamily:"'Space Grotesk',sans-serif",fontWeight:600,fontSize:13,color:"#64748b",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{job.partName}</div>
+                        <div style={{display:"flex",gap:8,fontSize:11,color:"#334155",marginTop:2,flexWrap:"wrap"}}>
+                          <span>🕐 {job.printTime}</span>
+                          {job.totalGrams!=null && <span>🧵 {job.totalGrams}g</span>}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",gap:3,flexShrink:0}}>
+                        {job.colors?.map((c,i)=><div key={i} style={{width:10,height:10,borderRadius:2,background:c}} />)}
+                      </div>
+                      <span style={{fontSize:12,color:"#10b98166",flexShrink:0}}>✓</span>
+                      <button className="btn btn-gray" style={{fontSize:10,padding:"3px 8px"}} onClick={()=>removeJob(job.id)}>×</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+        </div>
       </div>
     </div>
   );
