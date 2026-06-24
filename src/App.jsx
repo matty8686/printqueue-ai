@@ -407,6 +407,13 @@ function AppInner({ session, syncing, setSyncing }) {
     setJobs(prev => prev.map(j => j.id===jobId ? {...j, status:"pending", assignedPrinterId:null} : j));
     showNotif("Job moved back to To Be Assigned", "warn");
   }
+  function duplicateJob(jobId) {
+    const job = jobs.find(j=>j.id===jobId);
+    if (!job) return;
+    const copy = {...job, id: Date.now(), status:"pending", assignedPrinterId:null, addedAt: new Date().toLocaleTimeString()};
+    setJobs(prev => [...prev, copy]);
+    showNotif(`"${job.partName}" duplicated — assign to a printer`);
+  }
   function completeJob(jobId) { setConfirmComplete(jobId); }
   function confirmCompleteJob() {
     const jobId = confirmComplete;
@@ -967,6 +974,7 @@ Respond ONLY in valid JSON, no markdown:
                                   <div style={{display:"flex",gap:8}}>
                                     <button className="btn btn-green" style={{opacity:job.assignedPrinterId?1:0.4,cursor:job.assignedPrinterId?"pointer":"not-allowed"}}
                                       onClick={()=>job.assignedPrinterId&&addJobToQueue(job.id)}>+ Add to Queue</button>
+                                    <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>duplicateJob(job.id)}>⧉ Duplicate</button>
                                     <button className="btn btn-red" style={{marginLeft:"auto"}} onClick={()=>removeJob(job.id)}>Discard</button>
                                   </div>
                                 </div>
@@ -1017,6 +1025,7 @@ Respond ONLY in valid JSON, no markdown:
                             <div style={{display:"flex",gap:6}}>
                               <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>setEditingJob(isEditing?null:job.id)}>{isEditing?"Save":"Edit"}</button>
                               <button className="btn btn-green" style={{fontSize:11}} onClick={()=>completeJob(job.id)}>✓ Complete</button>
+                              <button className="btn btn-gray" style={{fontSize:11}} onClick={()=>duplicateJob(job.id)}>⧉ Duplicate</button>
                               {showUnqueue && <button className="btn btn-gray" style={{fontSize:11,marginLeft:"auto"}} onClick={()=>unqueueJob(job.id)}>↩ Unqueue</button>}
                             </div>
                           </div>
