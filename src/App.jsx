@@ -124,6 +124,92 @@ function formatFinishTime(startedAt, durationSecs) {
 }
 
 // ── Shared Components ──────────────────────────────────────────────────────────
+// ── FilamentSlotEditor ─────────────────────────────────────────────────────────
+// Top-level so React doesn't recreate it on every parent render (fixes lost focus)
+const PRESET_COLORS = [
+  "#FFFFFF","#000000","#FF0000","#00AA00","#0000FF","#FFFF00","#FF6600","#FF69B4",
+  "#888888","#8B4513","#00BFFF","#9400D3","#40E0D0","#98FF98","#FFD700","#C0C0C0",
+];
+function FilamentSlotEditor({ job, onUpdate }) {
+  const filaments = job.filaments || job.colors.map(c=>({color:c,colorName:"",material:"PLA",brand:"Bambu Lab"}));
+  const [expandedSlot, setExpandedSlot] = useState(null);
+
+  function updateSlot(i, field, value) {
+    onUpdate(filaments.map((f,fi)=>fi===i?{...f,[field]:value}:f));
+  }
+  function addSlot() {
+    onUpdate([...filaments, {...BLANK_FILAMENT_SLOT}]);
+    setExpandedSlot(filaments.length);
+  }
+  function removeSlot(i) {
+    if (filaments.length<=1) return;
+    onUpdate(filaments.filter((_,fi)=>fi!==i));
+    setExpandedSlot(null);
+  }
+
+  return (
+    <div>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:8}}>
+        {filaments.map((f,i)=>(
+          <div key={i} style={{position:"relative"}}>
+            <div onClick={()=>setExpandedSlot(expandedSlot===i?null:i)}
+              style={{display:"flex",alignItems:"center",gap:6,background:"#0d0d15",border:`1px solid ${expandedSlot===i?"#2aff6e":"#2a2a3a"}`,borderRadius:6,padding:"5px 8px",cursor:"pointer",minWidth:110}}>
+              <div style={{width:16,height:16,borderRadius:3,background:f.color,border:"1px solid #ffffff22",flexShrink:0}} />
+              <div style={{flex:1,minWidth:0}}>
+                {f.colorName
+                  ? <div><div style={{fontSize:11,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.colorName}</div><div style={{fontSize:9,color:"#555"}}>{f.brand} · {f.material}</div></div>
+                  : <div style={{fontSize:11,color:"#555",fontStyle:"italic"}}>Slot {i+1}</div>}
+              </div>
+              <span style={{fontSize:10,color:"#444"}}>▾</span>
+              {filaments.length>1 && <span onClick={e=>{e.stopPropagation();removeSlot(i);}} style={{color:"#555",cursor:"pointer",fontSize:12,padding:"0 2px"}}>×</span>}
+            </div>
+            {expandedSlot===i && (
+              <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:200,background:"#111118",border:"1px solid #2a2a3a",borderRadius:8,padding:"12px",minWidth:240,boxShadow:"0 8px 32px #000a"}}>
+                <div style={{fontSize:10,color:"#555",marginBottom:8,letterSpacing:"0.06em"}}>FILAMENT SLOT {i+1}</div>
+                {/* Color picker row */}
+                <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:8}}>
+                  <label style={{position:"relative",width:36,height:36,flexShrink:0,cursor:"pointer",borderRadius:6,border:"2px solid #2a2a3a",overflow:"hidden"}}>
+                    <div style={{width:"100%",height:"100%",background:f.color}} />
+                    <input type="color" value={f.color} onChange={e=>updateSlot(i,"color",e.target.value)}
+                      style={{position:"absolute",inset:0,opacity:0,width:"100%",height:"100%",cursor:"pointer"}} />
+                  </label>
+                  <input value={f.color} onChange={e=>updateSlot(i,"color",e.target.value)} placeholder="#RRGGBB"
+                    style={{flex:1,background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:5,padding:"6px 8px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,outline:"none"}} />
+                </div>
+                {/* Preset swatches */}
+                <div style={{display:"flex",flexWrap:"wrap",gap:4,marginBottom:8}}>
+                  {PRESET_COLORS.map(c=>(
+                    <div key={c} onClick={()=>updateSlot(i,"color",c)}
+                      style={{width:20,height:20,borderRadius:4,background:c,cursor:"pointer",border:f.color===c?"2px solid #22c55e":"2px solid transparent",boxSizing:"border-box"}} />
+                  ))}
+                </div>
+                <input value={f.colorName} onChange={e=>updateSlot(i,"colorName",e.target.value)} placeholder="Color name (e.g. Jade Green)"
+                  autoFocus
+                  style={{width:"100%",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:5,padding:"6px 10px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,outline:"none",marginBottom:8}} />
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
+                  <select value={f.brand} onChange={e=>updateSlot(i,"brand",e.target.value)}
+                    style={{width:"100%",padding:"6px 8px",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:5,color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,outline:"none"}}>
+                    {BRANDS.map(b=><option key={b}>{b}</option>)}
+                  </select>
+                  <select value={f.material} onChange={e=>updateSlot(i,"material",e.target.value)}
+                    style={{width:"100%",padding:"6px 8px",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:5,color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,outline:"none"}}>
+                    {MATERIALS.map(m=><option key={m}>{m}</option>)}
+                  </select>
+                </div>
+                <button className="btn btn-gray" style={{width:"100%",fontSize:11}} onClick={()=>setExpandedSlot(null)}>Done</button>
+              </div>
+            )}
+          </div>
+        ))}
+        <button onClick={addSlot}
+          style={{background:"#1a1a2a",border:"1px dashed #333",borderRadius:6,color:"#555",cursor:"pointer",fontSize:12,padding:"5px 10px",height:36}}>
+          + Add
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Modal({ onClose, children, maxWidth=480 }) {
   return (
     <div onClick={onClose} style={{position:"fixed",inset:0,background:"#000000dd",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",padding:16}}>
@@ -581,87 +667,6 @@ Respond ONLY in valid JSON, no markdown:
   const allJobs     = jobs.filter(j=>j.status==="pending"||j.status==="queued");
 
   // ── Filament Slot Editor ──
-  // Each job has an array of filament slots: { color, colorName, material, brand }
-  // No inventory tracking — just labels for reference and color matching
-  function FilamentSlotEditor({ job }) {
-    const filaments = job.filaments || job.colors.map(c=>({color:c,colorName:"",material:"PLA",brand:"Bambu Lab"}));
-    const [expandedSlot, setExpandedSlot] = useState(null);
-
-    function updateSlot(i, field, value) {
-      const updated = filaments.map((f,fi)=>fi===i?{...f,[field]:value}:f);
-      if (field==="color") {
-        // also sync colors array
-        updateJobFilaments(job.id, updated);
-      } else {
-        updateJobFilaments(job.id, updated);
-      }
-    }
-    function addSlot() {
-      updateJobFilaments(job.id, [...filaments, {...BLANK_FILAMENT_SLOT}]);
-      setExpandedSlot(filaments.length);
-    }
-    function removeSlot(i) {
-      if (filaments.length<=1) return;
-      updateJobFilaments(job.id, filaments.filter((_,fi)=>fi!==i));
-      setExpandedSlot(null);
-    }
-
-    return (
-      <div>
-        <div style={{display:"flex",gap:6,flexWrap:"wrap",alignItems:"center",marginBottom:8}}>
-          {filaments.map((f,i)=>(
-            <div key={i} style={{position:"relative"}}>
-              <div onClick={()=>setExpandedSlot(expandedSlot===i?null:i)}
-                style={{display:"flex",alignItems:"center",gap:6,background:"#0d0d15",border:`1px solid ${expandedSlot===i?"#2aff6e":"#2a2a3a"}`,borderRadius:6,padding:"5px 8px",cursor:"pointer",minWidth:110}}>
-                <label style={{position:"relative",width:16,height:16,flexShrink:0,cursor:"pointer"}} onClick={e=>e.stopPropagation()}>
-                  <div style={{width:16,height:16,borderRadius:3,background:f.color,border:"1px solid #ffffff22"}} />
-                  <input type="color" value={f.color} onChange={e=>updateSlot(i,"color",e.target.value)}
-                    style={{position:"absolute",inset:0,opacity:0,width:"100%",height:"100%",cursor:"pointer"}} />
-                </label>
-                <div style={{flex:1,minWidth:0}}>
-                  {f.colorName ? (
-                    <div>
-                      <div style={{fontSize:11,color:"#fff",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.colorName}</div>
-                      <div style={{fontSize:9,color:"#555"}}>{f.brand} · {f.material}</div>
-                    </div>
-                  ) : (
-                    <div style={{fontSize:11,color:"#555",fontStyle:"italic"}}>Slot {i+1}</div>
-                  )}
-                </div>
-                <span style={{fontSize:10,color:"#444"}}>▾</span>
-                {filaments.length>1 && (
-                  <span onClick={e=>{e.stopPropagation();removeSlot(i);}} style={{color:"#555",cursor:"pointer",fontSize:12,padding:"0 2px"}}>×</span>
-                )}
-              </div>
-              {/* Expanded slot editor */}
-              {expandedSlot===i && (
-                <div style={{position:"absolute",top:"calc(100% + 4px)",left:0,zIndex:200,background:"#111118",border:"1px solid #2a2a3a",borderRadius:8,padding:"12px",minWidth:220,boxShadow:"0 8px 32px #000a"}}>
-                  <div style={{fontSize:10,color:"#555",marginBottom:8,letterSpacing:"0.06em"}}>FILAMENT SLOT {i+1}</div>
-                  <input value={f.colorName} onChange={e=>updateSlot(i,"colorName",e.target.value)} placeholder="Color name (e.g. Jade Green)"
-                    style={{width:"100%",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:5,padding:"6px 10px",color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:12,outline:"none",marginBottom:8}} />
-                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:6,marginBottom:8}}>
-                    <select value={f.brand} onChange={e=>updateSlot(i,"brand",e.target.value)}
-                      style={{width:"100%",padding:"6px 8px",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:5,color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,outline:"none"}}>
-                      {BRANDS.map(b=><option key={b}>{b}</option>)}
-                    </select>
-                    <select value={f.material} onChange={e=>updateSlot(i,"material",e.target.value)}
-                      style={{width:"100%",padding:"6px 8px",background:"#0d0d15",border:"1px solid #2a2a3a",borderRadius:5,color:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontSize:11,outline:"none"}}>
-                      {MATERIALS.map(m=><option key={m}>{m}</option>)}
-                    </select>
-                  </div>
-                  <button className="btn btn-gray" style={{width:"100%",fontSize:11}} onClick={()=>setExpandedSlot(null)}>Done</button>
-                </div>
-              )}
-            </div>
-          ))}
-          <button onClick={addSlot}
-            style={{background:"#1a1a2a",border:"1px dashed #333",borderRadius:6,color:"#555",cursor:"pointer",fontSize:12,padding:"5px 10px",height:36}}>
-            + Add
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   // ── Render ─────────────────────────────────────────────────────────────────
   const NAV = [
@@ -1007,7 +1012,7 @@ Respond ONLY in valid JSON, no markdown:
                                   </div>
                                   <div style={{marginBottom:12}}>
                                     <div style={{fontSize:10,color:"#2a3a5a",marginBottom:6,letterSpacing:"0.07em"}}>FILAMENTS <span style={{color:"#1a2540",fontWeight:400}}>(click to label)</span></div>
-                                    <FilamentSlotEditor job={job} />
+                                    <FilamentSlotEditor job={job} onUpdate={f=>updateJobFilaments(job.id,f)} />
                                   </div>
                                   <div style={{marginBottom:14}}>
                                     <div style={{fontSize:10,color:"#2a3a5a",marginBottom:8,letterSpacing:"0.07em"}}>
