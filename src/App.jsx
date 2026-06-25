@@ -516,6 +516,11 @@ function AppInner({ session, syncing, setSyncing }) {
   async function removeJob(jobId) {
     setJobs(prev => prev.filter(j=>j.id!==jobId));
     setPrinters(prev => prev.map(p => ({...p, queue: p.queue.filter(id=>id!==jobId)})));
+    setActiveTimers(prev => {
+      const n = {...prev};
+      Object.entries(n).forEach(([pid, t]) => { if (t.jobId===jobId) delete n[pid]; });
+      return n;
+    });
     try { await supabase.from("jobs").delete().eq("user_id", session.user.id).eq("id", jobId); } catch(_) {}
   }
   function selectPrinterForJob(jobId, printerId) {
@@ -532,6 +537,11 @@ function AppInner({ session, syncing, setSyncing }) {
   function unqueueJob(jobId) {
     setJobs(prev => prev.map(j => j.id===jobId ? {...j, status:"pending", assignedPrinterId:null} : j));
     setPrinters(prev => prev.map(p => ({...p, queue: p.queue.filter(id=>id!==jobId)})));
+    setActiveTimers(prev => {
+      const n = {...prev};
+      Object.entries(n).forEach(([pid, t]) => { if (t.jobId===jobId) delete n[pid]; });
+      return n;
+    });
     showNotif("Job moved back to pending", "warn");
   }
   function duplicateJob(jobId) {
@@ -883,6 +893,12 @@ Respond ONLY in valid JSON, no markdown:
                         </div>
                         {/* Body */}
                         <div style={{background:"#111827",padding:"12px 14px"}}>
+                          {timer && !activeJob && (
+                            <div style={{marginBottom:8}} onClick={e=>e.stopPropagation()}>
+                              <div style={{fontSize:11,color:"#f87171",marginBottom:6}}>⚠ Job was removed while printing</div>
+                              <button className="btn btn-red" style={{fontSize:11}} onClick={()=>stopTimer(printer.id)}>■ Stop Timer</button>
+                            </div>
+                          )}
                           {activeJob ? (<>
                             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
                               {editingJob===activeJob.id
@@ -1188,6 +1204,12 @@ Respond ONLY in valid JSON, no markdown:
                     </div>
                     {/* Body */}
                     <div style={{background:"#0d1424",padding:"14px 16px"}}>
+                      {timer&&!activeJob && (
+                        <div style={{background:"#1c0a0a",border:"1px solid #f8717133",borderRadius:8,padding:"10px 14px",marginBottom:14}}>
+                          <div style={{fontSize:12,color:"#f87171",marginBottom:8}}>⚠ Job was removed while printing</div>
+                          <button className="btn btn-red" style={{fontSize:11}} onClick={()=>stopTimer(printer.id)}>■ Stop Timer</button>
+                        </div>
+                      )}
                       {timer&&activeJob && (
                         <div style={{background:"#0a0f1e",border:`1px solid ${isDone?"#10b98133":"#22c55e33"}`,borderRadius:8,padding:"10px 14px",marginBottom:14}}>
                           <div style={{display:"flex",alignItems:"center",gap:8,marginBottom:isDone?0:6}}>
