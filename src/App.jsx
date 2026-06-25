@@ -531,7 +531,8 @@ function AppInner({ session, syncing, setSyncing }) {
   }
   function unqueueJob(jobId) {
     setJobs(prev => prev.map(j => j.id===jobId ? {...j, status:"pending", assignedPrinterId:null} : j));
-    showNotif("Job moved back to To Be Assigned", "warn");
+    setPrinters(prev => prev.map(p => ({...p, queue: p.queue.filter(id=>id!==jobId)})));
+    showNotif("Job moved back to pending", "warn");
   }
   function duplicateJob(jobId) {
     const job = jobs.find(j=>j.id===jobId);
