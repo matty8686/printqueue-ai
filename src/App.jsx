@@ -636,13 +636,26 @@ Extract:
 Respond ONLY in valid JSON, no markdown:
 {"printerName":"string","colors":["#hex"],"printTime":"Xh Ym or null","partName":"string","colorCount":number,"totalGrams":number or null,"purgeWeightG":number or null,"notes":"string"}`;
 
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKeyRef.current||""}`;
-      const res = await fetch(url, {
-        method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ contents:[{parts:[{inline_data:{mime_type:file.type||"image/png",data:base64}},{text:prompt}]}], generationConfig:{temperature:0.1} })
-      });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(`Gemini API error: ${data.error?.message||res.statusText}`);
+      const models = ["gemini-2.0-flash","gemini-2.5-flash","gemini-1.5-flash"];
+      let data, lastErr;
+      for (let attempt=0; attempt<3; attempt++) {
+        const model = models[attempt % models.length];
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKeyRef.current||""}`;
+        const res = await fetch(url, {
+          method:"POST", headers:{"Content-Type":"application/json"},
+          body: JSON.stringify({ contents:[{parts:[{inline_data:{mime_type:file.type||"image/png",data:base64}},{text:prompt}]}], generationConfig:{temperature:0.1} })
+        });
+        data = await res.json();
+        if (res.ok && !data.error) break;
+        lastErr = data.error?.message || res.statusText;
+        const retryMatch = lastErr.match(/retry in ([\d.]+)s/i);
+        const wait = retryMatch ? Math.ceil(parseFloat(retryMatch[1])*1000) : 5000;
+        if (attempt < 2) {
+          showNotif(`Rate limited — retrying in ${Math.ceil(wait/1000)}s…`, "warn");
+          await new Promise(r => setTimeout(r, wait));
+        }
+      }
+      if (!data || data.error) throw new Error(`Gemini API error: ${lastErr}`);
       const text = data.candidates?.[0]?.content?.parts?.map(p=>p.text||"").join("")||"";
       if (!text) throw new Error("Empty response from Gemini");
       let parsed;
