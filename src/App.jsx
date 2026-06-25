@@ -372,6 +372,7 @@ function AppInner({ session, syncing, setSyncing }) {
   const [dragInfo,           setDragInfo]           = useState(null);
   const [showApiKey,         setShowApiKey]         = useState(false);
   const [sidebarOpen,        setSidebarOpen]        = useState(() => window.innerWidth > 640);
+  const [scrollToPrinter,    setScrollToPrinter]    = useState(null);
   const [activeTimers,       setActiveTimers]       = useState({});
   const [now,                setNow]                = useState(Date.now());
   const [apiKey, setApiKey] = useState(() => { try { return localStorage.getItem(LS_APIKEY)||""; } catch(_) { return ""; } });
@@ -436,6 +437,13 @@ function AppInner({ session, syncing, setSyncing }) {
   }, [loaded, session]);
 
   useEffect(() => { if (loaded) syncToCloud(printers, jobs); }, [printers, jobs, loaded]);
+  useEffect(() => {
+    if (activeTab === "printers" && scrollToPrinter !== null) {
+      const el = document.getElementById(`printer-card-${scrollToPrinter}`);
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+      setScrollToPrinter(null);
+    }
+  }, [activeTab, scrollToPrinter]);
 
   // ── Helpers ──
   function showNotif(msg, type="success") {
@@ -665,6 +673,15 @@ Respond ONLY in valid JSON, no markdown:
   const queuedJobs  = jobs.filter(j=>j.status==="queued");
   const doneJobs    = jobs.filter(j=>j.status==="done");
   const allJobs     = jobs.filter(j=>j.status==="pending"||j.status==="queued");
+  // Sort: printing first, then idle, then done — alphabetically within each group
+  const sortedPrinters = [...printers].sort((a,b) => {
+    const ta=activeTimers[a.id], tb=activeTimers[b.id];
+    const aDone=ta&&(ta.durationSecs-(now-ta.startedAt)/1000)<=0;
+    const bDone=tb&&(tb.durationSecs-(now-tb.startedAt)/1000)<=0;
+    const rank=p=>{ const t=activeTimers[p.id]; if(!t) return 1; if((t.durationSecs-(now-t.startedAt)/1000)<=0) return 2; return 0; };
+    const diff=rank(a)-rank(b); if(diff!==0) return diff;
+    return a.name.localeCompare(b.name);
+  });
 
   // ── Filament Slot Editor ──
 
@@ -839,7 +856,7 @@ Respond ONLY in valid JSON, no markdown:
               <div>
                 <div style={{fontSize:11,color:"#2a3a5a",letterSpacing:"0.1em",marginBottom:12,fontWeight:600}}>FARM STATUS</div>
                 <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(240px,1fr))",gap:12}}>
-                  {printers.map(printer=>{
+                  {sortedPrinters.map(printer=>{
                     const timer       = activeTimers[printer.id];
                     const printerJobs = jobs.filter(j=>printer.queue.includes(j.id));
                     const activeJob   = timer ? jobs.find(j=>j.id===timer.jobId) : printerJobs[0];
@@ -853,7 +870,7 @@ Respond ONLY in valid JSON, no markdown:
                     const statusLabel = isDone?"DONE ✓":timer?"PRINTING":"IDLE";
                     return (
                       <div key={printer.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${accentColor}33`,cursor:"pointer",transition:"border-color 0.2s"}}
-                        onClick={()=>setActiveTab("printers")}
+                        onClick={()=>{ setActiveTab("printers"); setScrollToPrinter(printer.id); }}
                         onMouseEnter={e=>e.currentTarget.style.borderColor=accentColor+"88"}
                         onMouseLeave={e=>e.currentTarget.style.borderColor=accentColor+"33"}>
                         {/* Colored header */}
@@ -1139,7 +1156,7 @@ Respond ONLY in valid JSON, no markdown:
                 <div style={{textAlign:"center",padding:"64px 0",color:"#1e293b"}}>
                   <div style={{fontSize:14,color:"#334155"}}>No printers yet — click "+ Add Printer" in the sidebar.</div>
                 </div>
-              ) : printers.map(printer=>{
+              ) : sortedPrinters.map(printer=>{
                 const timer=activeTimers[printer.id];
                 const printerJobs=jobs.filter(j=>printer.queue.includes(j.id));
                 const activeJob=timer?jobs.find(j=>j.id===timer.jobId):printerJobs[0];
@@ -1150,7 +1167,7 @@ Respond ONLY in valid JSON, no markdown:
                 const headerBg=isDone?"#065f46":timer?"#14532d":"#0f1e36";
                 const accentColor=isDone?"#10b981":timer?"#22c55e":"#1e293b";
                 return (
-                  <div key={printer.id} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${accentColor}44`}}
+                  <div key={printer.id} id={`printer-card-${printer.id}`} style={{borderRadius:10,overflow:"hidden",border:`1px solid ${accentColor}44`}}
                     onDragOver={e=>e.preventDefault()} onDrop={()=>dropOnPrinter(printer.id)}>
                     {/* Header */}
                     <div style={{background:headerBg,padding:"12px 16px",display:"flex",alignItems:"center",gap:12}}>
